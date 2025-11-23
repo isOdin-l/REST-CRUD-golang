@@ -1,17 +1,18 @@
-package responseDTO
+package models
 
 import "github.com/google/uuid"
 
-type GetItem struct {
+type Item struct {
 	ItemId      uuid.UUID
 	Title       string
 	Description string
 	Done        bool
 }
 
-type GetItemById struct { // Delete
+type CreateItemParams struct {
 	ItemId      uuid.UUID
+	UserId      uuid.UUID
+	ListId      uuid.UUID
 	Title       string
 	Description string
-	Done        bool
 }

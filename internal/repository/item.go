@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
 	"github.com/isOdin/RestApi/internal/database"
+	"github.com/isOdin/RestApi/internal/models"
 	"github.com/isOdin/RestApi/internal/repository/requestDTO"
 	"github.com/isOdin/RestApi/internal/repository/responseDTO"
 	"github.com/jackc/pgx/v5"
@@ -13,37 +15,23 @@ import (
 )
 
 type TodoItemRepository struct {
-	db *pgxpool.Pool
+	db   *pgxpool.Pool
+	psql sq.StatementBuilderType
 }
 
 func NewTodoItemRepository(db *pgxpool.Pool) *TodoItemRepository {
-	return &TodoItemRepository{db: db}
+	return &TodoItemRepository{db: db, psql: sq.StatementBuilder.PlaceholderFormat(sq.Dollar)}
 }
 
-func (r *TodoItemRepository) CreateItem(itemInfo *requestDTO.CreateItem) (uuid.UUID, error) {
-	tx, errTx := r.db.Begin(context.Background())
-	if errTx != nil {
-		return uuid.Nil, errTx
-	}
-
+func (r *TodoItemRepository) CreateItem(ctx context.Context, item models.CreateItemParams) error {
 	// T1 -> craete item
-	var itemId uuid.UUID
-	queryCreateItem := fmt.Sprintf("INSERT INTO %s (title, description) values ($1, $2) RETURNING id", database.TableTodoItems)
-	errCreateItem := tx.QueryRow(context.Background(), queryCreateItem, itemInfo.Title, itemInfo.Description).Scan(&itemId)
-	if errCreateItem != nil {
-		tx.Rollback(context.Background())
-		return uuid.Nil, errCreateItem
+	query, values, err := r.psql.Insert(database.TableTodoItems).Columns(getInsertItemColumns()...).Values(item.ItemId, item.ListId, item.Title, item.Description).ToSql()
+	if err != nil {
+		return err
 	}
 
-	// T2 -> create item-list relation
-	queryCreateListItemRelation := fmt.Sprintf("INSERT INTO %s (list_id, item_id) values ($1, $2)", database.TableListsItems)
-	_, errCreateRelation := tx.Exec(context.Background(), queryCreateListItemRelation, itemInfo.ListId, itemId)
-	if errCreateRelation != nil {
-		tx.Rollback(context.Background())
-		return uuid.Nil, errCreateRelation
-	}
-
-	return itemId, tx.Commit(context.Background())
+	_, err = r.db.Exec(ctx, query, values...)
+	return err
 }
 
 func (r *TodoItemRepository) GetAllItems(userId uuid.UUID) (*[]responseDTO.GetItem, error) {

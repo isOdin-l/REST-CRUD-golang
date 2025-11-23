@@ -51,9 +51,9 @@ func DefaultBind[T any](r *http.Request, v *T) error {
 		}
 
 		// Получаем название поля структурного тэга form
-		formTagName := elemType.Field(i).Tag.Get("form")
+		formTagName := elemType.Field(i).Tag.Get("json")
 		if formTagName == "" {
-			return errors.New("Not enough structure tags 'form' in structure")
+			return errors.New("Not enough structure tags 'json' in structure")
 		}
 
 		// Пытаемся получить значение из контекста. Если оно есть, то записываем его в мапу, приводя значение к string

@@ -1,11 +1,13 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/isOdin/RestApi/internal/models"
 	repoReqDTO "github.com/isOdin/RestApi/internal/repository/requestDTO"
 	repoResDTO "github.com/isOdin/RestApi/internal/repository/responseDTO"
 	"github.com/isOdin/RestApi/internal/service/requestDTO"
@@ -13,14 +15,14 @@ import (
 )
 
 type ItemRepoInterface interface {
-	CreateItem(itemInfo *repoReqDTO.CreateItem) (uuid.UUID, error)
+	CreateItem(ctx context.Context, itemInfo models.CreateItemParams) error
 	GetAllItems(userId uuid.UUID) (*[]repoResDTO.GetItem, error)
 	GetItemById(itemInfo *repoReqDTO.GetItemById) (*repoResDTO.GetItemById, error)
 	DeleteItem(itemInfo *repoReqDTO.DeleteItem) error
 	UpdateItem(itemInfo *repoReqDTO.UpdateItem) error
 
 	// List function for work
-	GetListById(listInfo *repoReqDTO.GetListById) (*repoResDTO.GetListById, error)
+	GetListByIdAndUserId(ctx context.Context, listId uuid.UUID, userId uuid.UUID) (*repoResDTO.GetListById, error)
 }
 
 type TodoItemService struct {
@@ -31,13 +33,13 @@ func NewTodoItemService(repo ItemRepoInterface) *TodoItemService {
 	return &TodoItemService{repo: repo}
 }
 
-func (s *TodoItemService) CreateItem(itemInfo *requestDTO.CreateItem) (uuid.UUID, error) {
-	_, err := s.repo.GetListById(itemInfo.ToRepoModelGetListById())
+func (s *TodoItemService) CreateItem(ctx context.Context, itemInfo models.CreateItemParams) error {
+	_, err := s.repo.GetListByIdAndUserId(ctx, itemInfo.ListId, itemInfo.UserId)
 	if err != nil {
-		return uuid.Nil, err
+		return err
 	}
 
-	return s.repo.CreateItem(itemInfo.ToRepoModelCreateItem())
+	return s.repo.CreateItem(ctx, itemInfo)
 }
 
 func (s *TodoItemService) GetAllItems(userId uuid.UUID) (*[]responseDTO.GetItem, error) {

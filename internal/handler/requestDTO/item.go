@@ -6,8 +6,8 @@ import (
 )
 
 type CreateItem struct {
-	UserId      uuid.UUID `json:"user_id" form:"userId" validate:"required"`
-	ListId      uuid.UUID `json:"list_id" form:"list_id"`
+	UserId      uuid.UUID `form:"userId" validate:"required"`
+	ListId      uuid.UUID `form:"list_id" validate:"required"`
 	Title       string    `json:"title" form:"title" validate:"required"`
 	Description string    `json:"description" form:"description"`
 }

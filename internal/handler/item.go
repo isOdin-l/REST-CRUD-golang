@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/isOdin/RestApi/internal/handler/requestDTO"
+	"github.com/isOdin/RestApi/internal/models"
 	serReqDTO "github.com/isOdin/RestApi/internal/service/requestDTO"
 	serResDTO "github.com/isOdin/RestApi/internal/service/responseDTO"
 	"github.com/isOdin/RestApi/tools/bindchi"
@@ -14,7 +16,7 @@ import (
 )
 
 type ItemServiceInterface interface {
-	CreateItem(itemInfo *serReqDTO.CreateItem) (uuid.UUID, error)
+	CreateItem(ctx context.Context, itemInfo models.CreateItemParams) (uuid.UUID, error)
 	GetAllItems(userId uuid.UUID) (*[]serResDTO.GetItem, error)
 	GetItemById(itemInfo *serReqDTO.GetItemById) (*serResDTO.GetItemById, error)
 	DeleteItem(itemInfo *serReqDTO.DeleteItem) error
@@ -49,11 +51,19 @@ func (h *Item) CreateItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	itemId, err := h.service.CreateItem(reqItem.ToServiceModel())
+	itemParams := models.CreateItemParams{
+		UserId:      reqItem.UserId,
+		ListId:      reqItem.ListId,
+		Title:       reqItem.Title,
+		Description: reqItem.Description,
+	}
+	itemId, err := h.service.CreateItem(r.Context(), itemParams) // TODO: to private, контекст и т.д
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Item -
 
 	render.JSON(w, r, map[string]interface{}{
 		"itemId": itemId,
@@ -111,9 +121,7 @@ func (h *Item) GetItemById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	render.JSON(w, r, map[string]interface{}{
-		"item": *item,
-	})
+	render.JSON(w, r, *item)
 }
 
 // @Summary Update todo-item

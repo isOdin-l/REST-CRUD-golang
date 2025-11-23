@@ -22,7 +22,7 @@ CREATE TABLE users_lists
 
 CREATE TABLE todo_items
 (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- delete uuid genereation
     title varchar(128) not null,
     description TEXT,
     done boolean not null default false
