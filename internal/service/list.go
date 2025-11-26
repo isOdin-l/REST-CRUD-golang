@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -13,11 +14,11 @@ import (
 )
 
 type ListRepoInterface interface {
-	CreateList(listInfo *repoReqDTO.CreateList) (uuid.UUID, error)
-	GetAllLists(userId uuid.UUID) (*[]repoResDTO.GetList, error)
-	GetListById(listInfo *repoReqDTO.GetListById) (*repoResDTO.GetListById, error)
-	DeleteList(listInfo *repoReqDTO.DeleteList) error
-	UpdateList(listInfo *repoReqDTO.UpdateList) error
+	CreateList(ctx context.Context, listInfo *repoReqDTO.CreateList) (uuid.UUID, error)
+	GetAllLists(ctx context.Context, userId uuid.UUID) (*[]repoResDTO.GetList, error)
+	GetListById(ctx context.Context, listInfo *repoReqDTO.GetListById) (*repoResDTO.GetListById, error)
+	DeleteList(ctx context.Context, listInfo *repoReqDTO.DeleteList) error
+	UpdateList(ctx context.Context, listInfo *repoReqDTO.UpdateList) error
 }
 
 type TodoListService struct {
@@ -28,12 +29,12 @@ func NewTodoListService(repo ListRepoInterface) *TodoListService {
 	return &TodoListService{repo: repo}
 }
 
-func (s *TodoListService) CreateList(listInfo *requestDTO.CreateList) (uuid.UUID, error) {
-	return s.repo.CreateList(listInfo.ConvertToRepoModel())
+func (s *TodoListService) CreateList(ctx context.Context, listInfo *requestDTO.CreateList) (uuid.UUID, error) {
+	return s.repo.CreateList(ctx, listInfo.ConvertToRepoModel())
 }
 
-func (s *TodoListService) GetAllLists(userId uuid.UUID) (*[]responseDTO.GetList, error) {
-	listsResponsed, err := s.repo.GetAllLists(userId)
+func (s *TodoListService) GetAllLists(ctx context.Context, userId uuid.UUID) (*[]responseDTO.GetList, error) {
+	listsResponsed, err := s.repo.GetAllLists(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -47,8 +48,8 @@ func (s *TodoListService) GetAllLists(userId uuid.UUID) (*[]responseDTO.GetList,
 	return &lists, nil
 }
 
-func (s *TodoListService) GetListById(listInfo *requestDTO.GetListById) (*responseDTO.GetListById, error) {
-	listResponsed, err := s.repo.GetListById(listInfo.ConvertToRepoModel())
+func (s *TodoListService) GetListById(ctx context.Context, listInfo *requestDTO.GetListById) (*responseDTO.GetListById, error) {
+	listResponsed, err := s.repo.GetListById(ctx, listInfo.ConvertToRepoModel())
 	if err != nil {
 		return nil, err
 	}
@@ -56,11 +57,11 @@ func (s *TodoListService) GetListById(listInfo *requestDTO.GetListById) (*respon
 	return listResponsed.ToServiceModel(), nil
 }
 
-func (s *TodoListService) DeleteList(listInfo *requestDTO.DeleteList) error {
-	return s.repo.DeleteList(listInfo.ConvertToRepoModel())
+func (s *TodoListService) DeleteList(ctx context.Context, listInfo *requestDTO.DeleteList) error {
+	return s.repo.DeleteList(ctx, listInfo.ConvertToRepoModel())
 }
 
-func (s *TodoListService) UpdateList(listInfo *requestDTO.UpdateList) error {
+func (s *TodoListService) UpdateList(ctx context.Context, listInfo *requestDTO.UpdateList) error {
 	setValues := make([]string, 0)
 	setArgs := make([]interface{}, 0)
 	argId := 1
@@ -84,5 +85,5 @@ func (s *TodoListService) UpdateList(listInfo *requestDTO.UpdateList) error {
 	setValuesQuery := strings.Join(setValues, ", ")
 	setArgs = append(setArgs, listInfo.ListId, listInfo.UserId)
 
-	return s.repo.UpdateList(listInfo.ConvertToRepoModel(&setArgs, argId, setValuesQuery))
+	return s.repo.UpdateList(ctx, listInfo.ConvertToRepoModel(&setArgs, argId, setValuesQuery))
 }

@@ -19,9 +19,9 @@ func NewAuthRepository(db *pgxpool.Pool) *AuthRepository {
 	return &AuthRepository{db: db}
 }
 
-func (r *AuthRepository) CreateUser(user *requestDTO.CreateUser) (uuid.UUID, error) {
+func (r *AuthRepository) CreateUser(ctx context.Context, user *requestDTO.CreateUser) (uuid.UUID, error) {
 	queryString := fmt.Sprintf("INSERT INTO %s (name, username, password_hash) values ($1, $2, $3) RETURNING id", database.TableUsers)
-	row := r.db.QueryRow(context.Background(), queryString, user.Name, user.Username, user.PasswordHash)
+	row := r.db.QueryRow(ctx, queryString, user.Name, user.Username, user.PasswordHash)
 
 	var userId uuid.UUID
 	err := row.Scan(&userId)
@@ -29,11 +29,11 @@ func (r *AuthRepository) CreateUser(user *requestDTO.CreateUser) (uuid.UUID, err
 	return userId, err
 }
 
-func (r *AuthRepository) GetUser(user *requestDTO.GetUser) (*responseDTO.GetedUser, error) {
+func (r *AuthRepository) GetUser(ctx context.Context, user *requestDTO.GetUser) (*responseDTO.GetedUser, error) {
 	var userResp responseDTO.GetedUser
 
 	queryString := fmt.Sprintf("SELECT id, name, username, password_hash FROM %s WHERE username = $1 AND password_hash = $2 LIMIT 1", database.TableUsers)
-	err := r.db.QueryRow(context.Background(), queryString, user.Username, user.PasswordHash).Scan(&userResp.Id, &userResp.Name, &userResp.Username, &userResp.PasswordHash)
+	err := r.db.QueryRow(ctx, queryString, user.Username, user.PasswordHash).Scan(&userResp.Id, &userResp.Name, &userResp.Username, &userResp.PasswordHash)
 
 	return &userResp, err
 }
