@@ -46,31 +46,33 @@ func NewRouter(md MiddlewareInterface, h HandlerInterface) chi.Router {
 	r.Get("/swagger/*", httpSwagger.Handler())
 
 	// /auth/...
-	r.Route("/auth", func(r chi.Router) {
-		r.Post("/sign-up", h.SignUpHandler)
-		r.Post("/sign-in", h.SignInHandler)
-	})
+	r.Route("/api/v0", func(r chi.Router) {
+		r.Route("/auth", func(r chi.Router) {
+			r.Post("/sign-up", h.SignUpHandler)
+			r.Post("/sign-in", h.SignInHandler)
+		})
 
-	// api/...
-	r.Route("/api", func(r chi.Router) {
-		r.Use(md.JWTAuth)
-		r.Route("/lists", func(r chi.Router) { // api/lists/...
-			r.Post("/", h.CreateList)
-			r.Get("/", h.GetAllLists)
-			r.Get("/{list_id}", h.GetListById)
-			r.Put("/{list_id}", h.UpdateList)
-			r.Delete("/{list_id}", h.DeleteList)
+		// api/...
+		r.Route("/api", func(r chi.Router) {
+			r.Use(md.JWTAuth)
+			r.Route("/lists", func(r chi.Router) { // api/lists/...
+				r.Post("/", h.CreateList)
+				r.Get("/", h.GetAllLists)
+				r.Get("/{list_id}", h.GetListById)
+				r.Put("/{list_id}", h.UpdateList)
+				r.Delete("/{list_id}", h.DeleteList)
 
-			r.Route("/{list_id}/items", func(r chi.Router) { // api/lists/items/...
-				r.Post("/", h.CreateItem)
+				r.Route("/{list_id}/items", func(r chi.Router) { // api/lists/items/...
+					r.Post("/", h.CreateItem)
+				})
+				r.Route("/items", func(r chi.Router) { // api/items/...
+					r.Get("/", h.GetAllItems)
+					r.Get("/{item_id}", h.GetItemById)
+					r.Put("/{item_id}", h.UpdateItem)
+					r.Delete("/{item_id}", h.DeleteItem)
+				})
+
 			})
-			r.Route("/items", func(r chi.Router) { // api/items/...
-				r.Get("/", h.GetAllItems)
-				r.Get("/{item_id}", h.GetItemById)
-				r.Put("/{item_id}", h.UpdateItem)
-				r.Delete("/{item_id}", h.DeleteItem)
-			})
-
 		})
 	})
 

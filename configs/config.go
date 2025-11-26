@@ -1,6 +1,9 @@
 package configs
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type Config struct {
 	SERVER_PORT     string `env:"SERVER_PORT"`
@@ -17,4 +20,8 @@ type InternalConfig struct {
 	SALT            string `env:"SALT"`
 	JWT_SIGNING_KEY string `env:"JWT_SIGNING_KEY"`
 	TOKEN_TTL       time.Duration
+}
+
+func (c *Config) DSN() string {
+	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s", c.DB_USERNAME, c.DB_PASSWORD, c.DB_HOST, c.DB_PORT, c.DB_NAME)
 }

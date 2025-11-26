@@ -2,7 +2,6 @@ package postgresql
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/isOdin/RestApi/configs"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -10,8 +9,7 @@ import (
 )
 
 func NewPostgresDB(cfg *configs.Config) (*pgxpool.Pool, error) {
-	conectionString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s", cfg.DB_USERNAME, cfg.DB_PASSWORD, cfg.DB_HOST, cfg.DB_PORT, cfg.DB_NAME)
-	conn, err := pgxpool.New(context.Background(), conectionString)
+	conn, err := pgxpool.New(context.Background(), cfg.DSN())
 
 	if err != nil {
 		return nil, err
