@@ -20,36 +20,36 @@ func NewTodoListRepository(db *pgxpool.Pool) *TodoListRepository {
 	return &TodoListRepository{db: db}
 }
 
-func (r *TodoListRepository) CreateList(listInfo *requestDTO.CreateList) (uuid.UUID, error) { // UUID, error
-	tx, err := r.db.Begin(context.Background())
+func (r *TodoListRepository) CreateList(ctx context.Context, listInfo *requestDTO.CreateList) (uuid.UUID, error) { // UUID, error
+	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return uuid.Nil, err
 	}
 
 	createListQuery := fmt.Sprintf("INSERT INTO %s (title, description) VALUES ($1, $2) RETURNING id", database.TableTodoLists)
-	rowCreateList := tx.QueryRow(context.Background(), createListQuery, listInfo.Title, listInfo.Description)
+	rowCreateList := tx.QueryRow(ctx, createListQuery, listInfo.Title, listInfo.Description)
 
 	var listId uuid.UUID
 	if errScan := rowCreateList.Scan(&listId); errScan != nil {
-		tx.Rollback(context.Background())
+		tx.Rollback(ctx)
 		return uuid.Nil, errScan
 	}
 
 	createUserListRelationQuery := fmt.Sprintf("INSERT INTO %s (user_id, list_id) VALUES ($1, $2)", database.TableUsersLists)
-	_, errExec := tx.Exec(context.Background(), createUserListRelationQuery, listInfo.UserId, listId)
+	_, errExec := tx.Exec(ctx, createUserListRelationQuery, listInfo.UserId, listId)
 	if errExec != nil {
-		tx.Rollback(context.Background())
+		tx.Rollback(ctx)
 		return uuid.Nil, errExec
 	}
 
-	return listId, tx.Commit(context.Background())
+	return listId, tx.Commit(ctx)
 }
 
-func (r *TodoListRepository) GetAllLists(userId uuid.UUID) (*[]responseDTO.GetList, error) {
+func (r *TodoListRepository) GetAllLists(ctx context.Context, userId uuid.UUID) (*[]responseDTO.GetList, error) {
 	lists := make([]responseDTO.GetList, 0)
 
 	getAllListsQuery := fmt.Sprintf("SELECT tl.id, tl.title, tl.description FROM %s tl INNER JOIN %s ul on tl.id = ul.list_id WHERE ul.user_id = $1", database.TableTodoLists, database.TableUsersLists)
-	rowsGetAllLists, err := r.db.Query(context.Background(), getAllListsQuery, userId)
+	rowsGetAllLists, err := r.db.Query(ctx, getAllListsQuery, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -68,17 +68,17 @@ func (r *TodoListRepository) GetListByIdAndUserId(ctx context.Context, listId uu
 	return &list, err
 }
 
-func (r *TodoListRepository) DeleteList(listInfo *requestDTO.DeleteList) error {
+func (r *TodoListRepository) DeleteList(ctx context.Context, listInfo *requestDTO.DeleteList) error {
 	queryDeleteList := fmt.Sprintf("DELETE FROM %s tl USING %s ul WHERE tl.id = ul.list_id AND ul.user_id=$1 AND ul.list_id=$2", database.TableTodoLists, database.TableUsersLists)
-	_, err := r.db.Exec(context.Background(), queryDeleteList, listInfo.UserId, listInfo.ListId)
+	_, err := r.db.Exec(ctx, queryDeleteList, listInfo.UserId, listInfo.ListId)
 
 	return err
 }
 
-func (r *TodoListRepository) UpdateList(listInfo *requestDTO.UpdateList) error {
+func (r *TodoListRepository) UpdateList(ctx context.Context, listInfo *requestDTO.UpdateList) error {
 	queryUpdateList := fmt.Sprintf("UPDATE %s tl SET %s FROM %s ul WHERE tl.id = ul.list_id AND ul.list_id=$%d AND ul.user_id=$%d", database.TableTodoLists, listInfo.SetValuesQuery, database.TableUsersLists, listInfo.ArgId, listInfo.ArgId+1)
 
-	_, err := r.db.Exec(context.Background(), queryUpdateList, *listInfo.SetArgs...)
+	_, err := r.db.Exec(ctx, queryUpdateList, *listInfo.SetArgs...)
 
 	return err
 }

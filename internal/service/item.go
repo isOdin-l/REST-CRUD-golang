@@ -16,10 +16,10 @@ import (
 
 type ItemRepoInterface interface {
 	CreateItem(ctx context.Context, itemInfo models.CreateItemParams) error
-	GetAllItems(userId uuid.UUID) (*[]repoResDTO.GetItem, error)
-	GetItemById(itemInfo *repoReqDTO.GetItemById) (*repoResDTO.GetItemById, error)
-	DeleteItem(itemInfo *repoReqDTO.DeleteItem) error
-	UpdateItem(itemInfo *repoReqDTO.UpdateItem) error
+	GetAllItems(ctx context.Context, userId uuid.UUID) (*[]repoResDTO.GetItem, error)
+	GetItemById(ctx context.Context, itemInfo *repoReqDTO.GetItemById) (*repoResDTO.GetItemById, error)
+	DeleteItem(ctx context.Context, itemInfo *repoReqDTO.DeleteItem) error
+	UpdateItem(ctx context.Context, itemInfo *repoReqDTO.UpdateItem) error
 
 	// List function for work
 	GetListByIdAndUserId(ctx context.Context, listId uuid.UUID, userId uuid.UUID) (*repoResDTO.GetListById, error)
@@ -42,8 +42,8 @@ func (s *TodoItemService) CreateItem(ctx context.Context, itemInfo models.Create
 	return s.repo.CreateItem(ctx, itemInfo)
 }
 
-func (s *TodoItemService) GetAllItems(userId uuid.UUID) (*[]responseDTO.GetItem, error) {
-	getedItem, err := s.repo.GetAllItems(userId)
+func (s *TodoItemService) GetAllItems(ctx context.Context, userId uuid.UUID) (*[]responseDTO.GetItem, error) {
+	getedItem, err := s.repo.GetAllItems(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -56,19 +56,19 @@ func (s *TodoItemService) GetAllItems(userId uuid.UUID) (*[]responseDTO.GetItem,
 	return &items, nil
 
 }
-func (s *TodoItemService) GetItemById(itemInfo *requestDTO.GetItemById) (*responseDTO.GetItemById, error) {
-	item, err := s.repo.GetItemById(itemInfo.ToRepoModelGetItemById())
+func (s *TodoItemService) GetItemById(ctx context.Context, itemInfo *requestDTO.GetItemById) (*responseDTO.GetItemById, error) {
+	item, err := s.repo.GetItemById(ctx, itemInfo.ToRepoModelGetItemById())
 	if err != nil {
 		return nil, err
 	}
 	return item.ToServiceModelGetItemById(), nil
 }
 
-func (s *TodoItemService) DeleteItem(itemInfo *requestDTO.DeleteItem) error {
-	return s.repo.DeleteItem(itemInfo.ToRepoModelDeleteItem())
+func (s *TodoItemService) DeleteItem(ctx context.Context, itemInfo *requestDTO.DeleteItem) error {
+	return s.repo.DeleteItem(ctx, itemInfo.ToRepoModelDeleteItem())
 }
 
-func (s *TodoItemService) UpdateItem(itemInfo *requestDTO.UpdateItem) error {
+func (s *TodoItemService) UpdateItem(ctx context.Context, itemInfo *requestDTO.UpdateItem) error {
 	setValues := make([]string, 0)
 	setArgs := make([]interface{}, 0)
 	argId := 1
@@ -98,5 +98,5 @@ func (s *TodoItemService) UpdateItem(itemInfo *requestDTO.UpdateItem) error {
 	setValuesQuery := strings.Join(setValues, ", ")
 	setArgs = append(setArgs, itemInfo.ItemId, itemInfo.UserId)
 
-	return s.repo.UpdateItem(itemInfo.ToRepoModelUpdateItem(&setArgs, setValuesQuery, argId))
+	return s.repo.UpdateItem(ctx, itemInfo.ToRepoModelUpdateItem(&setArgs, setValuesQuery, argId))
 }

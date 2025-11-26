@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/go-chi/render"
@@ -14,8 +15,8 @@ import (
 )
 
 type AuthServiceInterface interface {
-	CreateUser(user *servReqDTO.CreateUser) (uuid.UUID, error)
-	GenerateToken(user *servReqDTO.GenerateToken) (string, error)
+	CreateUser(ctx context.Context, user *servReqDTO.CreateUser) (uuid.UUID, error)
+	GenerateToken(ctx context.Context, user *servReqDTO.GenerateToken) (string, error)
 }
 
 type Auth struct {
@@ -44,7 +45,7 @@ func (h *Auth) SignUpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userId, err := h.service.CreateUser(reqUser.ConvertToServiceModel())
+	userId, err := h.service.CreateUser(r.Context(), reqUser.ConvertToServiceModel())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -72,7 +73,7 @@ func (h *Auth) SignInHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	generatedToken, err := h.service.GenerateToken(reqUser.ConvertToServiceModel())
+	generatedToken, err := h.service.GenerateToken(r.Context(), reqUser.ConvertToServiceModel())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

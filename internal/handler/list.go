@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/go-chi/render"
@@ -16,11 +17,11 @@ import (
 )
 
 type ListServiceInterface interface {
-	CreateList(listInfo *reqSerDTO.CreateList) (uuid.UUID, error)
-	GetAllLists(userId uuid.UUID) (*[]resSerDTO.GetList, error)
-	GetListById(listInfo *reqSerDTO.GetListById) (*resSerDTO.GetListById, error)
-	DeleteList(listInfo *reqSerDTO.DeleteList) error
-	UpdateList(listInfo *reqSerDTO.UpdateList) error
+	CreateList(ctx context.Context, listInfo *reqSerDTO.CreateList) (uuid.UUID, error)
+	GetAllLists(ctx context.Context, userId uuid.UUID) (*[]resSerDTO.GetList, error)
+	GetListById(ctx context.Context, listInfo *reqSerDTO.GetListById) (*resSerDTO.GetListById, error)
+	DeleteList(ctx context.Context, listInfo *reqSerDTO.DeleteList) error
+	UpdateList(ctx context.Context, listInfo *reqSerDTO.UpdateList) error
 }
 
 type List struct {
@@ -50,7 +51,7 @@ func (h *List) CreateList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	listId, err := h.service.CreateList(reqList.ToServiceModel())
+	listId, err := h.service.CreateList(r.Context(), reqList.ToServiceModel())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -77,7 +78,7 @@ func (h *List) GetAllLists(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	listsResponsed, err := h.service.GetAllLists(userId)
+	listsResponsed, err := h.service.GetAllLists(r.Context(), userId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -112,7 +113,7 @@ func (h *List) GetListById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	list, err := h.service.GetListById(listInfo.ToServiceModel())
+	list, err := h.service.GetListById(r.Context(), listInfo.ToServiceModel())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -141,7 +142,7 @@ func (h *List) UpdateList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.UpdateList(reqUpdList.ToServiceModel()); err != nil {
+	if err := h.service.UpdateList(r.Context(), reqUpdList.ToServiceModel()); err != nil {
 		logrus.Error(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -167,7 +168,7 @@ func (h *List) DeleteList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.DeleteList(listInfo.ToServiceModel()); err != nil {
+	if err := h.service.DeleteList(r.Context(), listInfo.ToServiceModel()); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

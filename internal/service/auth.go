@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"crypto/sha1"
 	"fmt"
 	"time"
@@ -15,8 +16,8 @@ import (
 )
 
 type AuthRepoInterface interface {
-	CreateUser(user *repoReqDTO.CreateUser) (uuid.UUID, error)
-	GetUser(user *repoReqDTO.GetUser) (*repoResDTO.GetedUser, error)
+	CreateUser(ctx context.Context, user *repoReqDTO.CreateUser) (uuid.UUID, error)
+	GetUser(ctx context.Context, user *repoReqDTO.GetUser) (*repoResDTO.GetedUser, error)
 }
 
 type AuthService struct {
@@ -28,12 +29,12 @@ func NewAuthService(cfg *configs.InternalConfig, repo AuthRepoInterface) *AuthSe
 	return &AuthService{cfg: cfg, repo: repo}
 }
 
-func (s *AuthService) CreateUser(user *requestDTO.CreateUser) (uuid.UUID, error) {
-	return s.repo.CreateUser(user.ConvertToRepoModel(s.generatePasswordHash(user.Password)))
+func (s *AuthService) CreateUser(ctx context.Context, user *requestDTO.CreateUser) (uuid.UUID, error) {
+	return s.repo.CreateUser(ctx, user.ConvertToRepoModel(s.generatePasswordHash(user.Password)))
 }
 
-func (s *AuthService) GenerateToken(user *requestDTO.GenerateToken) (string, error) {
-	userFromDB, err := s.repo.GetUser(user.ConvertToRepoModel(s.generatePasswordHash(user.Password)))
+func (s *AuthService) GenerateToken(ctx context.Context, user *requestDTO.GenerateToken) (string, error) {
+	userFromDB, err := s.repo.GetUser(ctx, user.ConvertToRepoModel(s.generatePasswordHash(user.Password)))
 	if err != nil {
 		return "", err
 	}

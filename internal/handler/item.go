@@ -17,10 +17,10 @@ import (
 
 type ItemServiceInterface interface {
 	CreateItem(ctx context.Context, itemInfo models.CreateItemParams) (uuid.UUID, error)
-	GetAllItems(userId uuid.UUID) (*[]serResDTO.GetItem, error)
-	GetItemById(itemInfo *serReqDTO.GetItemById) (*serResDTO.GetItemById, error)
-	DeleteItem(itemInfo *serReqDTO.DeleteItem) error
-	UpdateItem(itemInfo *serReqDTO.UpdateItem) error
+	GetAllItems(ctx context.Context, userId uuid.UUID) (*[]serResDTO.GetItem, error)
+	GetItemById(ctx context.Context, itemInfo *serReqDTO.GetItemById) (*serResDTO.GetItemById, error)
+	DeleteItem(ctx context.Context, itemInfo *serReqDTO.DeleteItem) error
+	UpdateItem(ctx context.Context, itemInfo *serReqDTO.UpdateItem) error
 }
 
 type Item struct {
@@ -86,7 +86,7 @@ func (h *Item) GetAllItems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	items, err := h.service.GetAllItems(userId)
+	items, err := h.service.GetAllItems(r.Context(), userId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -115,7 +115,7 @@ func (h *Item) GetItemById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := h.service.GetItemById(itemInfo.ToServiceModel())
+	item, err := h.service.GetItemById(r.Context(), itemInfo.ToServiceModel())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -142,7 +142,7 @@ func (h *Item) UpdateItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.UpdateItem(updItem.ToServiceModel()); err != nil {
+	if err := h.service.UpdateItem(r.Context(), updItem.ToServiceModel()); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -168,7 +168,7 @@ func (h *Item) DeleteItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.DeleteItem(itemInfo.ToServiceModel()); err != nil {
+	if err := h.service.DeleteItem(r.Context(), itemInfo.ToServiceModel()); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
