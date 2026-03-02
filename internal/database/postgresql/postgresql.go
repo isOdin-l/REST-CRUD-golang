@@ -3,9 +3,9 @@ package postgresql
 import (
 	"context"
 
-	"github.com/isOdin/RestApi/configs"
+	"isOdin/RestApi/configs"
+
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/sirupsen/logrus"
 )
 
 func NewPostgresDB(cfg *configs.Config) (*pgxpool.Pool, error) {
@@ -19,6 +19,5 @@ func NewPostgresDB(cfg *configs.Config) (*pgxpool.Pool, error) {
 		return nil, err
 	}
 
-	logrus.Info("Database connected")
 	return conn, nil
 }

@@ -6,18 +6,17 @@ import (
 	"fmt"
 	"time"
 
+	"isOdin/RestApi/configs"
+	"isOdin/RestApi/internal/entities"
+	jwtToken "isOdin/RestApi/internal/middleware/dto"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/isOdin/RestApi/configs"
-	jwtToken "github.com/isOdin/RestApi/internal/middleware/dto"
-	repoReqDTO "github.com/isOdin/RestApi/internal/repository/requestDTO"
-	repoResDTO "github.com/isOdin/RestApi/internal/repository/responseDTO"
-	"github.com/isOdin/RestApi/internal/service/requestDTO"
 )
 
 type AuthRepoInterface interface {
-	CreateUser(ctx context.Context, user *repoReqDTO.CreateUser) (uuid.UUID, error)
-	GetUser(ctx context.Context, user *repoReqDTO.GetUser) (*repoResDTO.GetedUser, error)
+	CreateUser(ctx context.Context, user *entities.User) error
+	GetUser(ctx context.Context, userId uuid.UUID) (*entities.User, error)
 }
 
 type AuthService struct {
@@ -29,12 +28,21 @@ func NewAuthService(cfg *configs.InternalConfig, repo AuthRepoInterface) *AuthSe
 	return &AuthService{cfg: cfg, repo: repo}
 }
 
-func (s *AuthService) CreateUser(ctx context.Context, user *requestDTO.CreateUser) (uuid.UUID, error) {
-	return s.repo.CreateUser(ctx, user.ConvertToRepoModel(s.generatePasswordHash(user.Password)))
+func (s *AuthService) CreateUser(ctx context.Context, user *entities.User) (uuid.UUID, error) {
+	var err error
+	user.UserId, err = uuid.NewV7()
+	if err != nil {
+		return uuid.Nil, err
+	}
+	user.Password = s.generatePasswordHash(user.Password)
+
+	return user.UserId, s.repo.CreateUser(ctx, user)
 }
 
-func (s *AuthService) GenerateToken(ctx context.Context, user *requestDTO.GenerateToken) (string, error) {
-	userFromDB, err := s.repo.GetUser(ctx, user.ConvertToRepoModel(s.generatePasswordHash(user.Password)))
+func (s *AuthService) GenerateToken(ctx context.Context, user *entities.User) (string, error) {
+	user.Password = s.generatePasswordHash(user.Password)
+
+	userFromDB, err := s.repo.GetUser(ctx, user.UserId)
 	if err != nil {
 		return "", err
 	}
@@ -44,7 +52,7 @@ func (s *AuthService) GenerateToken(ctx context.Context, user *requestDTO.Genera
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.cfg.TOKEN_TTL)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
-		UserId: userFromDB.Id,
+		UserId: userFromDB.UserId,
 	})
 
 	return token.SignedString([]byte(s.cfg.JWT_SIGNING_KEY))

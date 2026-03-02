@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"github.com/isOdin/RestApi/configs"
+	"isOdin/RestApi/configs"
 )
 
 type Middleware struct {

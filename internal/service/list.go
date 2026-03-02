@@ -2,23 +2,18 @@ package service
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"strings"
+	"reflect"
+
+	"isOdin/RestApi/internal/entities"
 
 	"github.com/google/uuid"
-	repoReqDTO "github.com/isOdin/RestApi/internal/repository/requestDTO"
-	repoResDTO "github.com/isOdin/RestApi/internal/repository/responseDTO"
-	"github.com/isOdin/RestApi/internal/service/requestDTO"
-	"github.com/isOdin/RestApi/internal/service/responseDTO"
 )
 
 type ListRepoInterface interface {
-	CreateList(ctx context.Context, listInfo *repoReqDTO.CreateList) (uuid.UUID, error)
-	GetAllLists(ctx context.Context, userId uuid.UUID) (*[]repoResDTO.GetList, error)
-	GetListById(ctx context.Context, listInfo *repoReqDTO.GetListById) (*repoResDTO.GetListById, error)
-	DeleteList(ctx context.Context, listInfo *repoReqDTO.DeleteList) error
-	UpdateList(ctx context.Context, listInfo *repoReqDTO.UpdateList) error
+	CreateList(ctx context.Context, list *entities.List) (uuid.UUID, error)
+	GetList(ctx context.Context, listId uuid.UUID) (*entities.List, error)
+	UpdateList(ctx context.Context, listId uuid.UUID, updateInfo map[string]interface{}) (*entities.List, error)
+	DeleteList(ctx context.Context, listId uuid.UUID) error
 }
 
 type TodoListService struct {
@@ -29,61 +24,27 @@ func NewTodoListService(repo ListRepoInterface) *TodoListService {
 	return &TodoListService{repo: repo}
 }
 
-func (s *TodoListService) CreateList(ctx context.Context, listInfo *requestDTO.CreateList) (uuid.UUID, error) {
-	return s.repo.CreateList(ctx, listInfo.ConvertToRepoModel())
+func (s *TodoListService) CreateList(ctx context.Context, list *entities.List) (uuid.UUID, error) {
+	return s.repo.CreateList(ctx, list)
 }
 
-func (s *TodoListService) GetAllLists(ctx context.Context, userId uuid.UUID) (*[]responseDTO.GetList, error) {
-	listsResponsed, err := s.repo.GetAllLists(ctx, userId)
-	if err != nil {
-		return nil, err
-	}
-
-	lists := make([]responseDTO.GetList, len(*listsResponsed))
-	for i := range len(*listsResponsed) {
-		// ------- Указатель на массив -> массив -> элемент массива -> перевод элемента в указатель на другой тип -> элемент другого типа -------
-		lists[i] = *((*listsResponsed)[i].ToServiceModel())
-	}
-
-	return &lists, nil
+func (s *TodoListService) GetListById(ctx context.Context, list *entities.List) (*entities.List, error) {
+	return s.repo.GetList(ctx, list.ListId)
 }
 
-func (s *TodoListService) GetListById(ctx context.Context, listInfo *requestDTO.GetListById) (*responseDTO.GetListById, error) {
-	listResponsed, err := s.repo.GetListById(ctx, listInfo.ConvertToRepoModel())
-	if err != nil {
-		return nil, err
-	}
-
-	return listResponsed.ToServiceModel(), nil
+func (s *TodoListService) DeleteList(ctx context.Context, list *entities.List) error {
+	return s.repo.DeleteList(ctx, list.ListId)
 }
 
-func (s *TodoListService) DeleteList(ctx context.Context, listInfo *requestDTO.DeleteList) error {
-	return s.repo.DeleteList(ctx, listInfo.ConvertToRepoModel())
-}
+func (s *TodoListService) UpdateList(ctx context.Context, list *entities.List) (*entities.List, error) {
+	k := reflect.TypeOf(*list)
+	v := reflect.ValueOf(*list)
+	updateInfo := make(map[string]interface{})
 
-func (s *TodoListService) UpdateList(ctx context.Context, listInfo *requestDTO.UpdateList) error {
-	setValues := make([]string, 0)
-	setArgs := make([]interface{}, 0)
-	argId := 1
-
-	if listInfo.Title == "" && listInfo.Description == "" {
-		return errors.New("Update structure has no values")
+	for i := 0; i < k.NumField(); i++ {
+		if !v.IsNil() {
+			updateInfo[k.Field(i).Name] = v.Field(i)
+		}
 	}
-
-	if listInfo.Title != "" {
-		setValues = append(setValues, fmt.Sprintf("title=$%d", argId))
-		setArgs = append(setArgs, listInfo.Title)
-		argId++
-	}
-
-	if listInfo.Description != "" {
-		setValues = append(setValues, fmt.Sprintf("description=$%d", argId))
-		setArgs = append(setArgs, listInfo.Description)
-		argId++
-	}
-
-	setValuesQuery := strings.Join(setValues, ", ")
-	setArgs = append(setArgs, listInfo.ListId, listInfo.UserId)
-
-	return s.repo.UpdateList(ctx, listInfo.ConvertToRepoModel(&setArgs, argId, setValuesQuery))
+	return s.repo.UpdateList(ctx, list.ListId, updateInfo)
 }

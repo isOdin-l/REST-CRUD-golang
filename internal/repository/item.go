@@ -2,85 +2,65 @@ package repository
 
 import (
 	"context"
-	"fmt"
+
+	"isOdin/RestApi/internal/database"
+	"isOdin/RestApi/internal/entities"
+	"isOdin/RestApi/internal/repository/models"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
-	"github.com/isOdin/RestApi/internal/database"
-	"github.com/isOdin/RestApi/internal/models"
-	"github.com/isOdin/RestApi/internal/repository/requestDTO"
-	"github.com/isOdin/RestApi/internal/repository/responseDTO"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type TodoItemRepository struct {
+type ItemRepository struct {
 	db   *pgxpool.Pool
 	psql sq.StatementBuilderType
 }
 
-func NewTodoItemRepository(db *pgxpool.Pool) *TodoItemRepository {
-	return &TodoItemRepository{db: db, psql: sq.StatementBuilder.PlaceholderFormat(sq.Dollar)}
+func NewItemRepository(db *pgxpool.Pool) *ItemRepository {
+	return &ItemRepository{db: db, psql: sq.StatementBuilder.PlaceholderFormat(sq.Dollar)}
 }
 
-func (r *TodoItemRepository) CreateItem(ctx context.Context, item models.CreateItemParams) error {
-	// T1 -> craete item
-	query, values, err := r.psql.Insert(database.TableTodoItems).Columns(getInsertItemColumns()...).Values(item.ItemId, item.ListId, item.Title, item.Description).ToSql()
+func (r *ItemRepository) CreateItem(ctx context.Context, item *models.Item) (uuid.UUID, error) {
+	query, values, err := database.InsertItem(&r.psql, item.Id, item.List_id, item.Title, item.Description)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	_, err = r.db.Exec(ctx, query, values...)
+
+	return item.Id, err
+}
+
+func (r *ItemRepository) GetItem(ctx context.Context, itemId uuid.UUID) (*entities.Item, error) {
+	query, value, errBuilder := database.SelectItem(&r.psql, itemId)
+	if errBuilder != nil {
+		return nil, errBuilder
+	}
+
+	item := &entities.Item{}
+	errQuery := r.db.QueryRow(ctx, query, value...).Scan(item)
+
+	return item, errQuery
+}
+func (r *ItemRepository) DeleteItem(ctx context.Context, itemId uuid.UUID) error {
+	query, value, err := database.DeleteItem(&r.psql, itemId)
 	if err != nil {
 		return err
 	}
 
-	_, err = r.db.Exec(ctx, query, values...)
+	_, err = r.db.Exec(ctx, query, value...)
+
 	return err
 }
 
-func (r *TodoItemRepository) GetAllItems(ctx context.Context, userId uuid.UUID) (*[]responseDTO.GetItem, error) {
-	var items []responseDTO.GetItem
-	queryGetAllItems := fmt.Sprintf("SELECT i.* FROM %s i INNER JOIN %s il ON i.id = il.item_id INNER JOIN %s l ON il.list_id = l.id INNER JOIN %s ul ON l.id = ul.list_id WHERE ul.user_id=$1",
-		database.TableTodoItems, database.TableListsItems, database.TableTodoLists, database.TableUsersLists)
-
-	rowGetAllItems, err := r.db.Query(ctx, queryGetAllItems, userId)
+func (r *ItemRepository) UpdateItem(ctx context.Context, itemId uuid.UUID, updateInfo map[string]interface{}) (*entities.Item, error) {
+	query, values, err := database.UpdateItem(&r.psql, itemId, updateInfo)
 	if err != nil {
-		return &items, err
+		return nil, err
 	}
+	item := &entities.Item{}
+	errDbQuery := r.db.QueryRow(ctx, query, values...).Scan(item)
 
-	items, err = pgx.CollectRows(rowGetAllItems, pgx.RowToStructByName[responseDTO.GetItem])
-
-	return &items, err
-}
-func (r *TodoItemRepository) GetItemById(ctx context.Context, itemInfo *requestDTO.GetItemById) (*responseDTO.GetItemById, error) {
-	var itemById responseDTO.GetItemById
-
-	queryGetItemById := fmt.Sprintf("SELECT i.id, i.title, i.description, i.done FROM %s i INNER JOIN %s il ON i.id = il.item_id INNER JOIN %s l ON il.list_id = l.id INNER JOIN %s ul ON l.id = ul.list_id WHERE ul.user_id=$1 AND i.id = $2",
-		database.TableTodoItems, database.TableListsItems, database.TableTodoLists, database.TableUsersLists)
-
-	err := r.db.QueryRow(ctx, queryGetItemById, itemInfo.UserId, itemInfo.ItemId).Scan(&itemById.ItemId, &itemById.Title, &itemById.Description, &itemById.Done)
-
-	return &itemById, err
-}
-func (r *TodoItemRepository) DeleteItem(ctx context.Context, itemInfo *requestDTO.DeleteItem) error {
-	queryDeleteItemById := fmt.Sprintf(`
-		DELETE FROM %s i 
-		USING %s il 
-		INNER JOIN %s l ON il.list_id = l.id
-		INNER JOIN %s ul ON l.id = ul.list_id 
-		WHERE i.id = il.item_id
-	  	AND ul.user_id = $1
-		AND i.id = $2`,
-		database.TableTodoItems, database.TableListsItems, database.TableTodoLists, database.TableUsersLists)
-
-	_, err := r.db.Exec(ctx, queryDeleteItemById, itemInfo.UserId, itemInfo.ItemId)
-
-	return err
-}
-
-func (r *TodoItemRepository) UpdateItem(ctx context.Context, itemInfo *requestDTO.UpdateItem) error {
-	queryUpdateItem := fmt.Sprintf(`
-		UPDATE %s tl SET %s FROM %s li, %s ul
-		WHERE tl.id = li.item_id AND li.list_id = ul.list_id AND tl.id = $%d AND ul.user_id = $%d`,
-		database.TableTodoItems, itemInfo.SetValuesQuery, database.TableListsItems, database.TableUsersLists, itemInfo.ArgId, itemInfo.ArgId+1)
-
-	_, err := r.db.Exec(ctx, queryUpdateItem, *itemInfo.SetArgs...)
-
-	return err
+	return item, errDbQuery
 }

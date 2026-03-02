@@ -2,27 +2,18 @@ package service
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"strings"
+	"reflect"
+
+	"isOdin/RestApi/internal/entities"
 
 	"github.com/google/uuid"
-	"github.com/isOdin/RestApi/internal/models"
-	repoReqDTO "github.com/isOdin/RestApi/internal/repository/requestDTO"
-	repoResDTO "github.com/isOdin/RestApi/internal/repository/responseDTO"
-	"github.com/isOdin/RestApi/internal/service/requestDTO"
-	"github.com/isOdin/RestApi/internal/service/responseDTO"
 )
 
 type ItemRepoInterface interface {
-	CreateItem(ctx context.Context, itemInfo models.CreateItemParams) error
-	GetAllItems(ctx context.Context, userId uuid.UUID) (*[]repoResDTO.GetItem, error)
-	GetItemById(ctx context.Context, itemInfo *repoReqDTO.GetItemById) (*repoResDTO.GetItemById, error)
-	DeleteItem(ctx context.Context, itemInfo *repoReqDTO.DeleteItem) error
-	UpdateItem(ctx context.Context, itemInfo *repoReqDTO.UpdateItem) error
-
-	// List function for work
-	GetListByIdAndUserId(ctx context.Context, listId uuid.UUID, userId uuid.UUID) (*repoResDTO.GetListById, error)
+	CreateItem(ctx context.Context, item *entities.Item) (uuid.UUID, error)
+	GetItem(ctx context.Context, itemId uuid.UUID) (*entities.Item, error)
+	UpdateItem(ctx context.Context, itemId uuid.UUID, updateInfo map[string]interface{}) (*entities.Item, error)
+	DeleteItem(ctx context.Context, itemId uuid.UUID) error
 }
 
 type TodoItemService struct {
@@ -33,70 +24,28 @@ func NewTodoItemService(repo ItemRepoInterface) *TodoItemService {
 	return &TodoItemService{repo: repo}
 }
 
-func (s *TodoItemService) CreateItem(ctx context.Context, itemInfo models.CreateItemParams) error {
-	_, err := s.repo.GetListByIdAndUserId(ctx, itemInfo.ListId, itemInfo.UserId)
-	if err != nil {
-		return err
-	}
-
-	return s.repo.CreateItem(ctx, itemInfo)
+func (s *TodoItemService) CreateItem(ctx context.Context, item *entities.Item) (uuid.UUID, error) {
+	return s.repo.CreateItem(ctx, item)
 }
 
-func (s *TodoItemService) GetAllItems(ctx context.Context, userId uuid.UUID) (*[]responseDTO.GetItem, error) {
-	getedItem, err := s.repo.GetAllItems(ctx, userId)
-	if err != nil {
-		return nil, err
-	}
-
-	items := make([]responseDTO.GetItem, len(*getedItem))
-	for i := range len(*getedItem) {
-		items[i] = *(*getedItem)[i].ToServiceModelGetItem()
-	}
-
-	return &items, nil
-
-}
-func (s *TodoItemService) GetItemById(ctx context.Context, itemInfo *requestDTO.GetItemById) (*responseDTO.GetItemById, error) {
-	item, err := s.repo.GetItemById(ctx, itemInfo.ToRepoModelGetItemById())
-	if err != nil {
-		return nil, err
-	}
-	return item.ToServiceModelGetItemById(), nil
+func (s *TodoItemService) GetItem(ctx context.Context, item *entities.Item) (*entities.Item, error) {
+	return s.repo.GetItem(ctx, item.ItemId)
 }
 
-func (s *TodoItemService) DeleteItem(ctx context.Context, itemInfo *requestDTO.DeleteItem) error {
-	return s.repo.DeleteItem(ctx, itemInfo.ToRepoModelDeleteItem())
+func (s *TodoItemService) DeleteItem(ctx context.Context, item *entities.Item) error {
+	return s.repo.DeleteItem(ctx, item.ItemId)
 }
 
-func (s *TodoItemService) UpdateItem(ctx context.Context, itemInfo *requestDTO.UpdateItem) error {
-	setValues := make([]string, 0)
-	setArgs := make([]interface{}, 0)
-	argId := 1
+func (s *TodoItemService) UpdateItem(ctx context.Context, item *entities.Item) (*entities.Item, error) {
+	k := reflect.TypeOf(*item)
+	v := reflect.ValueOf(*item)
+	updateInfo := make(map[string]interface{})
 
-	if itemInfo.Title == "" && itemInfo.Description == "" && itemInfo.Done == nil {
-		return errors.New("Update structure has no values")
+	for i := 0; i < k.NumField(); i++ {
+		if !v.IsNil() {
+			updateInfo[k.Field(i).Name] = v.Field(i)
+		}
 	}
 
-	if itemInfo.Title != "" {
-		setValues = append(setValues, fmt.Sprintf("title=$%d", argId))
-		setArgs = append(setArgs, itemInfo.Title)
-		argId++
-	}
-
-	if itemInfo.Description != "" {
-		setValues = append(setValues, fmt.Sprintf("description=$%d", argId))
-		setArgs = append(setArgs, itemInfo.Description)
-		argId++
-	}
-
-	if itemInfo.Done != nil {
-		setValues = append(setValues, fmt.Sprintf("done=$%d", argId))
-		setArgs = append(setArgs, itemInfo.Done)
-		argId++
-	}
-
-	setValuesQuery := strings.Join(setValues, ", ")
-	setArgs = append(setArgs, itemInfo.ItemId, itemInfo.UserId)
-
-	return s.repo.UpdateItem(ctx, itemInfo.ToRepoModelUpdateItem(&setArgs, setValuesQuery, argId))
+	return s.repo.UpdateItem(ctx, item.ItemId, updateInfo)
 }

@@ -4,15 +4,16 @@ import (
 	"context"
 	"net/http"
 
+	_ "isOdin/RestApi/api/apidto"
+	"isOdin/RestApi/internal/handler/requestDTO"
+	"isOdin/RestApi/internal/handler/responseDTO"
+	reqSerDTO "isOdin/RestApi/internal/service/requestDTO"
+	resSerDTO "isOdin/RestApi/internal/service/responseDTO"
+	"isOdin/RestApi/tools/bindchi"
+
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
-	_ "github.com/isOdin/RestApi/api/apidto"
-	"github.com/isOdin/RestApi/internal/handler/requestDTO"
-	"github.com/isOdin/RestApi/internal/handler/responseDTO"
-	reqSerDTO "github.com/isOdin/RestApi/internal/service/requestDTO"
-	resSerDTO "github.com/isOdin/RestApi/internal/service/responseDTO"
-	"github.com/isOdin/RestApi/tools/bindchi"
 	"github.com/sirupsen/logrus"
 )
 

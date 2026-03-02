@@ -2,19 +2,18 @@ package main
 
 import (
 	"context"
-	"net/http"
-	"time"
+
+	"isOdin/RestApi/configs"
+	"isOdin/RestApi/internal/database/postgresql"
+	"isOdin/RestApi/internal/handler"
+	"isOdin/RestApi/internal/middleware"
+	"isOdin/RestApi/internal/repository"
+	"isOdin/RestApi/internal/server"
+	"isOdin/RestApi/internal/service"
 
 	"github.com/caarlos0/env/v11"
 	"github.com/go-playground/validator/v10"
-	"github.com/isOdin/RestApi/configs"
-	"github.com/isOdin/RestApi/internal/database/postgresql"
-	"github.com/isOdin/RestApi/internal/handler"
-	"github.com/isOdin/RestApi/internal/httpchi"
-	"github.com/isOdin/RestApi/internal/middleware"
-	"github.com/isOdin/RestApi/internal/repository"
-	"github.com/isOdin/RestApi/internal/service"
-	"github.com/sirupsen/logrus"
+	"github.com/labstack/echo/v5"
 )
 
 // @title Todo App API
@@ -30,55 +29,33 @@ import (
 // @in header
 // @name Authorization
 func main() {
+	router := echo.New()
+
 	// Config
 	var cfg configs.Config
 	if err := env.Parse(&cfg); err != nil {
-		logrus.Error("Error whie initialize config:, ", err.Error())
+		router.Logger.Error("Error whie initialize config:, ", err.Error())
 		return
 	}
-	internalCfg := &configs.InternalConfig{
-		SALT:            cfg.SALT,
-		JWT_SIGNING_KEY: cfg.JWT_SIGNING_KEY,
-		TOKEN_TTL:       12 * time.Hour,
-	}
 
-	// Database: postgresql
+	// Database
 	DB, err := postgresql.NewPostgresDB(&cfg)
 	if err != nil {
-		logrus.Fatalf("failed to initialize db: %s", err.Error())
+		router.Logger.Error("failed to initialize db: %s", err.Error())
 	}
 	defer DB.Close()
 
-	// ----- Repository -----
-	repository := repository.NewRepository(DB)
-
-	// ----- Service -----
-	service := service.NewService(internalCfg, repository)
-
-	// ----- Validator -----
-	validate := validator.New(validator.WithRequiredStructEnabled())
-
-	// ----- Middleware -----
-	middleware := middleware.NewMiddleware(internalCfg)
-
-	// ----- Handler -----
-	handler := handler.NewHandler(validate, service)
-
-	// ----- Router -----
-	r := httpchi.NewRouter(middleware, handler)
+	repository := repository.NewRepository(DB)                       //----- Repository -----
+	service := service.NewService(&cfg.InternalConfig, repository)   // ----- Service -----
+	validate := validator.New(validator.WithRequiredStructEnabled()) // ----- Validator -----
+	middleware := middleware.NewMiddleware(&cfg.InternalConfig)      // ----- Middleware -----
+	handler := handler.NewHandler(validate, service)                 // ----- Handler -----
+	server.NewRouter(router, middleware, handler)                    // ----- Routing -----
 
 	// Server start
-	server := httpchi.NewServer()
-	go func() {
-		if err := server.RunServer(cfg.SERVER_PORT, r); err != nil && err != http.ErrServerClosed {
-			logrus.Fatalf("error while running server %s", err.Error())
-		}
-	}()
-	logrus.Print("Server started")
-
-	server.GracefulShutdownServer(context.Background())
-}
-
-func init() {
-	logrus.SetFormatter(new(logrus.JSONFormatter))
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := server.RunServer(router, &ctx, ":8000"); err != nil {
+		router.Logger.Error("error while running server %s", err.Error())
+	}
 }

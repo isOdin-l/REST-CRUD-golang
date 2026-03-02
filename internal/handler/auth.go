@@ -4,14 +4,13 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/go-chi/render"
+	_ "isOdin/RestApi/api/apidto"
+	"isOdin/RestApi/internal/handler/requestDTO"
+	servReqDTO "isOdin/RestApi/internal/service/requestDTO"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
-	_ "github.com/isOdin/RestApi/api/apidto"
-	"github.com/isOdin/RestApi/internal/handler/requestDTO"
-	servReqDTO "github.com/isOdin/RestApi/internal/service/requestDTO"
-	"github.com/isOdin/RestApi/tools/bindchi"
-	"github.com/sirupsen/logrus"
+	"github.com/labstack/echo/v5"
 )
 
 type AuthServiceInterface interface {
@@ -37,23 +36,15 @@ func NewAuthHandler(validate *validator.Validate, service AuthServiceInterface) 
 // @Success 200 {string} string
 // @Failure default {string} string
 // @Router /auth/sign-up [post]
-func (h *Auth) SignUpHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Auth) SignUpHandler(c *echo.Context) error {
 	var reqUser requestDTO.SignUpUser
-	if err := bindchi.BindValidate(r, &reqUser, h.validate); err != nil {
-		logrus.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 
-	userId, err := h.service.CreateUser(r.Context(), reqUser.ConvertToServiceModel())
+	userId, err := h.service.CreateUser(c.Request().Context(), reqUser.ConvertToServiceModel())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	render.JSON(w, r, map[string]interface{}{
-		"id": userId,
-	})
+	return c.JSON(http.StatusOK, userId)
 }
 
 // @Summary SignIn
@@ -65,21 +56,13 @@ func (h *Auth) SignUpHandler(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {string} string
 // @Failure default {string} string
 // @Router /auth/sign-in [post]
-func (h *Auth) SignInHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Auth) SignInHandler(c *echo.Context) error {
 	var reqUser requestDTO.SignInUser
-	if err := bindchi.BindValidate(r, &reqUser, h.validate); err != nil {
-		logrus.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 
-	generatedToken, err := h.service.GenerateToken(r.Context(), reqUser.ConvertToServiceModel())
+	generatedToken, err := h.service.GenerateToken(c.Request().Context(), reqUser.ConvertToServiceModel())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	render.JSON(w, r, map[string]interface{}{
-		"token": generatedToken,
-	})
+	return c.JSON(http.StatusOK, generatedToken)
 }

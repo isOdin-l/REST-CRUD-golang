@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/isOdin/RestApi/configs"
+	"isOdin/RestApi/configs"
 )
 
 type Service struct {
