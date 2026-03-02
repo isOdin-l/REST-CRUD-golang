@@ -27,8 +27,8 @@ import (
 
 type Repository struct {
 	*AuthRepository
-	*TodoListRepository
-	*TodoItemRepository
+	*ListRepository
+	*ItemRepository
 }
 
 // For future
@@ -37,8 +37,8 @@ type DatabaseInterface interface {
 
 func NewRepository(db *pgxpool.Pool) *Repository {
 	return &Repository{
-		AuthRepository:     NewAuthRepository(db),
-		TodoListRepository: NewTodoListRepository(db),
-		TodoItemRepository: NewTodoItemRepository(db),
+		AuthRepository: NewAuthRepository(db),
+		ListRepository: NewListRepository(db),
+		ItemRepository: NewItemRepository(db),
 	}
 }

@@ -2,38 +2,45 @@ package repository
 
 import (
 	"context"
-	"fmt"
 
+	"isOdin/RestApi/internal/database"
+	"isOdin/RestApi/internal/entities"
+	"isOdin/RestApi/internal/repository/models"
+
+	sq "github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
-	"github.com/isOdin/RestApi/internal/database"
-	"github.com/isOdin/RestApi/internal/repository/requestDTO"
-	"github.com/isOdin/RestApi/internal/repository/responseDTO"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type AuthRepository struct {
-	db *pgxpool.Pool
+	db   *pgxpool.Pool
+	psql sq.StatementBuilderType
 }
 
 func NewAuthRepository(db *pgxpool.Pool) *AuthRepository {
-	return &AuthRepository{db: db}
+	return &AuthRepository{db: db, psql: sq.StatementBuilder.PlaceholderFormat(sq.Dollar)}
 }
 
-func (r *AuthRepository) CreateUser(ctx context.Context, user *requestDTO.CreateUser) (uuid.UUID, error) {
-	queryString := fmt.Sprintf("INSERT INTO %s (name, username, password_hash) values ($1, $2, $3) RETURNING id", database.TableUsers)
-	row := r.db.QueryRow(ctx, queryString, user.Name, user.Username, user.PasswordHash)
+func (r *AuthRepository) CreateUser(ctx context.Context, user *entities.User) error {
+	userDb := models.FromUserEntityToRepo(user)
+	query, value, err := database.InsertUser(&r.psql, userDb.Id, userDb.Name, userDb.Username, userDb.Password_hash)
+	if err != nil {
+		return err
+	}
 
-	var userId uuid.UUID
-	err := row.Scan(&userId)
+	_, errDbExec := r.db.Exec(ctx, query, value...)
 
-	return userId, err
+	return errDbExec
 }
 
-func (r *AuthRepository) GetUser(ctx context.Context, user *requestDTO.GetUser) (*responseDTO.GetedUser, error) {
-	var userResp responseDTO.GetedUser
+func (r *AuthRepository) GetUser(ctx context.Context, userId uuid.UUID) (*entities.User, error) {
+	query, value, err := database.SelectUser(&r.psql, userId)
+	if err != nil {
+		return nil, err
+	}
 
-	queryString := fmt.Sprintf("SELECT id, name, username, password_hash FROM %s WHERE username = $1 AND password_hash = $2 LIMIT 1", database.TableUsers)
-	err := r.db.QueryRow(ctx, queryString, user.Username, user.PasswordHash).Scan(&userResp.Id, &userResp.Name, &userResp.Username, &userResp.PasswordHash)
+	userDb := &models.User{}
+	err = r.db.QueryRow(ctx, query, value...).Scan(userDb)
 
-	return &userResp, err
+	return userDb.ToEntity(), err
 }

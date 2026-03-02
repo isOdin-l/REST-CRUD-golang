@@ -5,10 +5,11 @@ import (
 	"net/http"
 	"strings"
 
+	"isOdin/RestApi/configs"
+	"isOdin/RestApi/internal/middleware/dto"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/isOdin/RestApi/configs"
-	"github.com/isOdin/RestApi/internal/middleware/dto"
 )
 
 type AuthMiddleware struct {

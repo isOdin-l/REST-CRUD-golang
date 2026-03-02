@@ -4,22 +4,24 @@ import (
 	"context"
 	"net/http"
 
+	"isOdin/RestApi/internal/handler/requestDTO"
+	"isOdin/RestApi/internal/models"
+	serReqDTO "isOdin/RestApi/internal/service/requestDTO"
+	serResDTO "isOdin/RestApi/internal/service/responseDTO"
+	"isOdin/RestApi/pkg/api"
+	"isOdin/RestApi/tools/bindchi"
+
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
-	"github.com/isOdin/RestApi/internal/handler/requestDTO"
-	"github.com/isOdin/RestApi/internal/models"
-	serReqDTO "github.com/isOdin/RestApi/internal/service/requestDTO"
-	serResDTO "github.com/isOdin/RestApi/internal/service/responseDTO"
-	"github.com/isOdin/RestApi/tools/bindchi"
 	"github.com/sirupsen/logrus"
 )
 
 type ItemServiceInterface interface {
-	CreateItem(ctx context.Context, itemInfo models.CreateItemParams) (uuid.UUID, error)
+	CreateItem(ctx context.Context, itemInfo models.CreateItemParams) (api.ResponseItem, error)
 	GetAllItems(ctx context.Context, userId uuid.UUID) (*[]serResDTO.GetItem, error)
-	GetItemById(ctx context.Context, itemInfo *serReqDTO.GetItemById) (*serResDTO.GetItemById, error)
-	DeleteItem(ctx context.Context, itemInfo *serReqDTO.DeleteItem) error
+	GetItemById(ctx context.Context, itemInfo *serReqDTO.GetItemById) (*api.ResponseItem, error)
+	DeleteItem(ctx context.Context, itemInfo *serReqDTO.DeleteItem) (api.ResponseDeleteItem, error)
 	UpdateItem(ctx context.Context, itemInfo *serReqDTO.UpdateItem) error
 }
 
@@ -44,20 +46,14 @@ func NewItemHandler(validate *validator.Validate, service ItemServiceInterface) 
 // @Failure default {string} string
 // @Router /api/lists/{list_id}/items [post]
 func (h *Item) CreateItem(w http.ResponseWriter, r *http.Request) {
-	var reqItem requestDTO.CreateItem
+	var reqItem api.CreateItem
 	if err := bindchi.BindValidate(r, &reqItem, h.validate); err != nil {
 		logrus.Error(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	itemParams := models.CreateItemParams{
-		UserId:      reqItem.UserId,
-		ListId:      reqItem.ListId,
-		Title:       reqItem.Title,
-		Description: reqItem.Description,
-	}
-	itemId, err := h.service.CreateItem(r.Context(), itemParams) // TODO: to private, контекст и т.д
+	itemId, err := h.service.CreateItem(r.Context(), models.ConvertToCreateItemParams(reqItem)) // TODO: to private, контекст и т.д
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
