@@ -10,7 +10,7 @@ import (
 )
 
 type ItemRepoInterface interface {
-	CreateItem(ctx context.Context, item *entities.Item) (uuid.UUID, error)
+	CreateItem(ctx context.Context, item *entities.Item) error
 	GetItem(ctx context.Context, itemId uuid.UUID) (*entities.Item, error)
 	UpdateItem(ctx context.Context, itemId uuid.UUID, updateInfo map[string]interface{}) (*entities.Item, error)
 	DeleteItem(ctx context.Context, itemId uuid.UUID) error
@@ -25,7 +25,12 @@ func NewTodoItemService(repo ItemRepoInterface) *TodoItemService {
 }
 
 func (s *TodoItemService) CreateItem(ctx context.Context, item *entities.Item) (uuid.UUID, error) {
-	return s.repo.CreateItem(ctx, item)
+	var err error
+	item.ItemId, err = uuid.NewV7()
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return item.ItemId, s.repo.CreateItem(ctx, item)
 }
 
 func (s *TodoItemService) GetItem(ctx context.Context, item *entities.Item) (*entities.Item, error) {

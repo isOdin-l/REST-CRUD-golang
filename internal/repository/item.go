@@ -21,15 +21,16 @@ func NewItemRepository(db *pgxpool.Pool) *ItemRepository {
 	return &ItemRepository{db: db, psql: sq.StatementBuilder.PlaceholderFormat(sq.Dollar)}
 }
 
-func (r *ItemRepository) CreateItem(ctx context.Context, item *models.Item) (uuid.UUID, error) {
-	query, values, err := database.InsertItem(&r.psql, item.Id, item.List_id, item.Title, item.Description)
+func (r *ItemRepository) CreateItem(ctx context.Context, item *entities.Item) error {
+	itemDb := models.FromItemEntityToRepo(item)
+	query, values, err := database.InsertItem(&r.psql, itemDb.Id, itemDb.List_id, itemDb.Title, itemDb.Description)
 	if err != nil {
-		return uuid.Nil, err
+		return err
 	}
 
 	_, err = r.db.Exec(ctx, query, values...)
 
-	return item.Id, err
+	return err
 }
 
 func (r *ItemRepository) GetItem(ctx context.Context, itemId uuid.UUID) (*entities.Item, error) {
@@ -38,10 +39,12 @@ func (r *ItemRepository) GetItem(ctx context.Context, itemId uuid.UUID) (*entiti
 		return nil, errBuilder
 	}
 
-	item := &entities.Item{}
-	errQuery := r.db.QueryRow(ctx, query, value...).Scan(item)
+	item := &models.Item{}
+	if errQuery := r.db.QueryRow(ctx, query, value...).Scan(item); errQuery != nil {
+		return nil, errQuery
+	}
 
-	return item, errQuery
+	return item.ToEntity(), nil
 }
 func (r *ItemRepository) DeleteItem(ctx context.Context, itemId uuid.UUID) error {
 	query, value, err := database.DeleteItem(&r.psql, itemId)
@@ -59,8 +62,10 @@ func (r *ItemRepository) UpdateItem(ctx context.Context, itemId uuid.UUID, updat
 	if err != nil {
 		return nil, err
 	}
-	item := &entities.Item{}
-	errDbQuery := r.db.QueryRow(ctx, query, values...).Scan(item)
+	item := &models.Item{}
+	if errDbQuery := r.db.QueryRow(ctx, query, values...).Scan(item); errDbQuery != nil {
+		return nil, errDbQuery
+	}
 
-	return item, errDbQuery
+	return item.ToEntity(), nil
 }

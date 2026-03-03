@@ -35,18 +35,18 @@ func SelectItem(builder *sq.StatementBuilderType, itemId uuid.UUID) (string, []i
 		Where(sq.Eq{"id": itemId}).ToSql()
 }
 
-func UpdateItem(builder *sq.StatementBuilderType, list_id uuid.UUID, updateData map[string]interface{}) (string, []interface{}, error) {
+func UpdateItem(builder *sq.StatementBuilderType, itemId uuid.UUID, updateData map[string]interface{}) (string, []interface{}, error) {
 	return builder.
 		Update(TableItems).
 		SetMap(updateData).
-		Where(sq.Eq{"list_id": list_id}).
+		Where(sq.Eq{"id": itemId}).
 		Suffix("RETURNING author_id, title, description").ToSql()
 }
 
-func DeleteItem(builder *sq.StatementBuilderType, item_id uuid.UUID) (string, []interface{}, error) {
+func DeleteItem(builder *sq.StatementBuilderType, itemId uuid.UUID) (string, []interface{}, error) {
 	return builder.
 		Delete(TableItems).
-		Where(sq.Eq{"item_id": item_id}).ToSql()
+		Where(sq.Eq{"id": itemId}).ToSql()
 }
 
 // ======== LIST ========
@@ -72,8 +72,8 @@ func UpdateList(builder *sq.StatementBuilderType, author_id uuid.UUID, updateDat
 		Suffix("RETURNING list_id, title, description, done").ToSql()
 }
 
-func DeleteList(builder *sq.StatementBuilderType, list_id uuid.UUID) (string, []interface{}, error) {
+func DeleteList(builder *sq.StatementBuilderType, listId uuid.UUID) (string, []interface{}, error) {
 	return builder.
 		Delete(TableLists).
-		Where(sq.Eq{"list_id": list_id}).ToSql()
+		Where(sq.Eq{"list_id": listId}).ToSql()
 }

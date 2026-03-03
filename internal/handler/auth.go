@@ -2,11 +2,10 @@ package handler
 
 import (
 	"context"
+	mapper "isOdin/RestApi/internal/api"
+	"isOdin/RestApi/internal/entities"
+	"isOdin/RestApi/pkg/api"
 	"net/http"
-
-	_ "isOdin/RestApi/api/apidto"
-	"isOdin/RestApi/internal/handler/requestDTO"
-	servReqDTO "isOdin/RestApi/internal/service/requestDTO"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -14,8 +13,8 @@ import (
 )
 
 type AuthServiceInterface interface {
-	CreateUser(ctx context.Context, user *servReqDTO.CreateUser) (uuid.UUID, error)
-	GenerateToken(ctx context.Context, user *servReqDTO.GenerateToken) (string, error)
+	CreateUser(ctx context.Context, user *entities.User) (uuid.UUID, error)
+	GenerateToken(ctx context.Context, user *entities.User) (string, error)
 }
 
 type Auth struct {
@@ -37,9 +36,12 @@ func NewAuthHandler(validate *validator.Validate, service AuthServiceInterface) 
 // @Failure default {string} string
 // @Router /auth/sign-up [post]
 func (h *Auth) SignUpHandler(c *echo.Context) error {
-	var reqUser requestDTO.SignUpUser
+	userFromApi := new(api.SignUp)
+	if err := c.Bind(userFromApi); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
 
-	userId, err := h.service.CreateUser(c.Request().Context(), reqUser.ConvertToServiceModel())
+	userId, err := h.service.CreateUser(c.Request().Context(), mapper.FromSignUpApiToEntity(userFromApi))
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -57,9 +59,12 @@ func (h *Auth) SignUpHandler(c *echo.Context) error {
 // @Failure default {string} string
 // @Router /auth/sign-in [post]
 func (h *Auth) SignInHandler(c *echo.Context) error {
-	var reqUser requestDTO.SignInUser
+	var userApi api.SignIn
+	if err := c.Bind(userApi); err != nil {
+		return c.JSON(http.StatusBadGateway, err.Error())
+	}
 
-	generatedToken, err := h.service.GenerateToken(c.Request().Context(), reqUser.ConvertToServiceModel())
+	generatedToken, err := h.service.GenerateToken(c.Request().Context(), mapper.FromSignInApiToEntity(&userApi))
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
