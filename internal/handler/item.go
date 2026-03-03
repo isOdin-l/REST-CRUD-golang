@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	mapper "isOdin/RestApi/internal/api"
@@ -9,12 +10,11 @@ import (
 	"isOdin/RestApi/pkg/api"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
 )
 
 type ItemServiceInterface interface {
-	CreateItem(ctx context.Context, item *entities.Item) (uuid.UUID, error)
+	CreateItem(ctx context.Context, item *entities.Item) (*entities.Item, error)
 	GetItem(ctx context.Context, item *entities.Item) (*entities.Item, error)
 	DeleteItem(ctx context.Context, item *entities.Item) error
 	UpdateItem(ctx context.Context, item *entities.Item) (*entities.Item, error)
@@ -46,12 +46,12 @@ func (h *Item) CreateItem(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	itemId, errService := h.service.CreateItem(c.Request().Context(), mapper.FromCreateItemToEntity(&itemApi))
+	item, errService := h.service.CreateItem(c.Request().Context(), mapper.FromCreateItemToEntity(&itemApi))
 	if errService != nil {
 		return c.JSON(http.StatusInternalServerError, errService.Error())
 	}
 
-	return c.JSON(http.StatusOK, itemId)
+	return c.JSON(http.StatusOK, mapper.FromEntityToItemApi(item))
 }
 
 // @Summary Get todo-item by Id
@@ -75,7 +75,7 @@ func (h *Item) GetItem(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, errService.Error())
 	}
 
-	return c.JSON(http.StatusOK, item)
+	return c.JSON(http.StatusOK, mapper.FromEntityToItemApi(item))
 }
 
 // @Summary Update todo-item
@@ -100,7 +100,7 @@ func (h *Item) UpdateItem(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, errService.Error)
 	}
 
-	return c.JSON(http.StatusOK, item)
+	return c.JSON(http.StatusOK, mapper.FromEntityToItemApi(item))
 }
 
 // @Summary Delete todo-item
@@ -124,5 +124,5 @@ func (h *Item) DeleteItem(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, errService.Error)
 	}
 
-	return c.JSON(http.StatusOK, "Item deleted")
+	return c.JSON(http.StatusOK, fmt.Sprintf("Item %s deleted", itemApi.ItemId))
 }

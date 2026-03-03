@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"isOdin/RestApi/configs"
 	"isOdin/RestApi/internal/database/postgresql"
@@ -30,18 +31,20 @@ import (
 // @name Authorization
 func main() {
 	router := echo.New()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	// Config
 	var cfg configs.Config
 	if err := env.Parse(&cfg); err != nil {
-		router.Logger.Error("Error whie initialize config:, ", err.Error())
+		router.Logger.Error(fmt.Sprintf("Error whie initialize config: %s", err.Error()))
 		return
 	}
 
 	// Database
 	DB, err := postgresql.NewPostgresDB(&cfg)
 	if err != nil {
-		router.Logger.Error("failed to initialize db: %s", err.Error())
+		router.Logger.Error(fmt.Sprintf("fmt.failed to initialize db: %s", err.Error()))
 	}
 	defer DB.Close()
 
@@ -53,9 +56,7 @@ func main() {
 	server.NewRouter(router, middleware, handler)                    // ----- Routing -----
 
 	// Server start
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	if err := server.RunServer(router, &ctx, ":8000"); err != nil {
-		router.Logger.Error("error while running server %s", err.Error())
+		router.Logger.Error(fmt.Sprintf("Error while running server %s", err.Error()))
 	}
 }

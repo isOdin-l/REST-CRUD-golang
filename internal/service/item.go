@@ -24,13 +24,13 @@ func NewTodoItemService(repo ItemRepoInterface) *TodoItemService {
 	return &TodoItemService{repo: repo}
 }
 
-func (s *TodoItemService) CreateItem(ctx context.Context, item *entities.Item) (uuid.UUID, error) {
+func (s *TodoItemService) CreateItem(ctx context.Context, item *entities.Item) (*entities.Item, error) {
 	var err error
 	item.ItemId, err = uuid.NewV7()
 	if err != nil {
-		return uuid.Nil, err
+		return nil, err
 	}
-	return item.ItemId, s.repo.CreateItem(ctx, item)
+	return item, s.repo.CreateItem(ctx, item)
 }
 
 func (s *TodoItemService) GetItem(ctx context.Context, item *entities.Item) (*entities.Item, error) {
