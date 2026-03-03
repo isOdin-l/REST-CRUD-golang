@@ -14,6 +14,7 @@ type SignUp struct {
 }
 
 type SignIn struct {
+	UserId   uuid.UUID
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
@@ -42,6 +43,7 @@ type DeleteItem struct {
 
 // List
 type CreateList struct {
+	UserId      uuid.UUID
 	Title       string `json:"title"`
 	Description string `json:"description"`
 }
@@ -51,6 +53,7 @@ type GetList struct {
 }
 
 type UpdateList struct {
+	UserId      uuid.UUID
 	ListId      uuid.UUID `json:"list_id"`
 	Title       string    `json:"title" validate:"optional"`
 	Description string    `json:"description" validate:"optional"`

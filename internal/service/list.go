@@ -10,7 +10,7 @@ import (
 )
 
 type ListRepoInterface interface {
-	CreateList(ctx context.Context, list *entities.List) (uuid.UUID, error)
+	CreateList(ctx context.Context, list *entities.List) error
 	GetList(ctx context.Context, listId uuid.UUID) (*entities.List, error)
 	UpdateList(ctx context.Context, listId uuid.UUID, updateInfo map[string]interface{}) (*entities.List, error)
 	DeleteList(ctx context.Context, listId uuid.UUID) error
@@ -25,7 +25,13 @@ func NewTodoListService(repo ListRepoInterface) *TodoListService {
 }
 
 func (s *TodoListService) CreateList(ctx context.Context, list *entities.List) (uuid.UUID, error) {
-	return s.repo.CreateList(ctx, list)
+	var err error
+	list.ListId, err = uuid.NewV7()
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	return list.ListId, s.repo.CreateList(ctx, list)
 }
 
 func (s *TodoListService) GetListById(ctx context.Context, list *entities.List) (*entities.List, error) {

@@ -4,25 +4,20 @@ import (
 	"context"
 	"net/http"
 
-	_ "isOdin/RestApi/api/apidto"
-	"isOdin/RestApi/internal/handler/requestDTO"
-	"isOdin/RestApi/internal/handler/responseDTO"
-	reqSerDTO "isOdin/RestApi/internal/service/requestDTO"
-	resSerDTO "isOdin/RestApi/internal/service/responseDTO"
-	"isOdin/RestApi/tools/bindchi"
+	mapper "isOdin/RestApi/internal/api"
+	"isOdin/RestApi/internal/entities"
+	"isOdin/RestApi/pkg/api"
 
-	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
+	"github.com/labstack/echo/v5"
 )
 
 type ListServiceInterface interface {
-	CreateList(ctx context.Context, listInfo *reqSerDTO.CreateList) (uuid.UUID, error)
-	GetAllLists(ctx context.Context, userId uuid.UUID) (*[]resSerDTO.GetList, error)
-	GetListById(ctx context.Context, listInfo *reqSerDTO.GetListById) (*resSerDTO.GetListById, error)
-	DeleteList(ctx context.Context, listInfo *reqSerDTO.DeleteList) error
-	UpdateList(ctx context.Context, listInfo *reqSerDTO.UpdateList) error
+	CreateList(ctx context.Context, list *entities.List) (uuid.UUID, error)
+	GetListById(ctx context.Context, list *entities.List) (*entities.List, error)
+	DeleteList(ctx context.Context, list *entities.List) error
+	UpdateList(ctx context.Context, list *entities.List) (*entities.List, error)
 }
 
 type List struct {
@@ -44,56 +39,18 @@ func NewListHandler(validate *validator.Validate, service ListServiceInterface) 
 // @Success 200 {string} string
 // @Failure default {string} string
 // @Router /api/lists [post]
-func (h *List) CreateList(w http.ResponseWriter, r *http.Request) {
-	var reqList requestDTO.CreateList
-	if err := bindchi.BindValidate(r, &reqList, h.validate); err != nil {
-		logrus.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+func (h *List) CreateList(c *echo.Context) error {
+	var listApi api.CreateList
+	if err := c.Bind(listApi); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	listId, err := h.service.CreateList(r.Context(), reqList.ToServiceModel())
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	listId, errService := h.service.CreateList(c.Request().Context(), mapper.FromCreateListToEntity(&listApi))
+	if errService != nil {
+		return c.JSON(http.StatusInternalServerError, errService.Error)
 	}
 
-	render.JSON(w, r, map[string]interface{}{
-		"listId": listId,
-	})
-}
-
-// @Summary Get all todo-lists
-// @Security ApiKeyAuth
-// @Tags lists
-// @ID get-all-lists
-// @Accept  json
-// @Produce  json
-// @Success 200 {string} string
-// @Failure default {string} string
-// @Router /api/lists [get]
-func (h *List) GetAllLists(w http.ResponseWriter, r *http.Request) {
-	userId, ok := r.Context().Value("userId").(uuid.UUID)
-	if !ok {
-		http.Error(w, "User id not found", http.StatusInternalServerError)
-		return
-	}
-
-	listsResponsed, err := h.service.GetAllLists(r.Context(), userId)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	lists := make([]responseDTO.GetList, len(*listsResponsed))
-	for i := range len(*listsResponsed) {
-		// ------- Указатель на массив -> массив -> элемент массива -> перевод элемента в указатель на другой тип -> элемент другого типа -------
-		lists[i] = *((*listsResponsed)[i].ToHandlerModel())
-	}
-
-	render.JSON(w, r, map[string]interface{}{
-		"lists": lists,
-	})
+	return c.JSON(http.StatusOK, listId)
 }
 
 // @Summary Get todo-lists by Id
@@ -106,22 +63,18 @@ func (h *List) GetAllLists(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {string} string
 // @Failure default {string} string
 // @Router /api/lists/{list_id} [get]
-func (h *List) GetListById(w http.ResponseWriter, r *http.Request) {
-	var listInfo requestDTO.GetListById
-	if err := bindchi.BindValidate(r, &listInfo, h.validate); err != nil {
-		logrus.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+func (h *List) GetList(c *echo.Context) error {
+	var listApi api.GetList
+	if err := c.Bind(listApi); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	list, err := h.service.GetListById(r.Context(), listInfo.ToServiceModel())
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	list, errService := h.service.GetListById(c.Request().Context(), mapper.FromGetListToEntity(&listApi))
+	if errService != nil {
+		return c.JSON(http.StatusInternalServerError, errService.Error)
 	}
-	render.JSON(w, r, map[string]interface{}{
-		"list": list,
-	})
+
+	return c.JSON(http.StatusOK, list)
 }
 
 // @Summary Update todo-list
@@ -135,20 +88,18 @@ func (h *List) GetListById(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {string} string
 // @Failure default {string} string
 // @Router /api/lists/{list_id} [put]
-func (h *List) UpdateList(w http.ResponseWriter, r *http.Request) {
-	var reqUpdList requestDTO.UpdateList
-	if err := bindchi.BindValidate(r, &reqUpdList, h.validate); err != nil {
-		logrus.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+func (h *List) UpdateList(c *echo.Context) error {
+	var listApi api.UpdateList
+	if err := c.Bind(listApi); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	if err := h.service.UpdateList(r.Context(), reqUpdList.ToServiceModel()); err != nil {
-		logrus.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	list, errService := h.service.UpdateList(c.Request().Context(), mapper.FromUpdateListToEntity(&listApi))
+	if errService != nil {
+		return c.JSON(http.StatusInternalServerError, errService.Error)
 	}
-	render.JSON(w, r, map[string]interface{}{})
+
+	return c.JSON(http.StatusOK, list)
 }
 
 // @Summary Delete todo-list
@@ -161,17 +112,16 @@ func (h *List) UpdateList(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {string} string
 // @Failure default {string} string
 // @Router /api/lists/{list_id} [delete]
-func (h *List) DeleteList(w http.ResponseWriter, r *http.Request) {
-	var listInfo requestDTO.DeleteList
-	if err := bindchi.BindValidate(r, &listInfo, h.validate); err != nil {
-		logrus.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+func (h *List) DeleteList(c *echo.Context) error {
+	var listApi api.DeleteList
+	if err := c.Bind(listApi); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	if err := h.service.DeleteList(r.Context(), listInfo.ToServiceModel()); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	errService := h.service.DeleteList(c.Request().Context(), mapper.FromDeleteListToEntity(&listApi))
+	if errService != nil {
+		return c.JSON(http.StatusInternalServerError, errService.Error)
 	}
-	render.JSON(w, r, map[string]interface{}{})
+
+	return c.JSON(http.StatusOK, "List deleted")
 }

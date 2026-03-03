@@ -4,25 +4,20 @@ import (
 	"context"
 	"net/http"
 
-	"isOdin/RestApi/internal/handler/requestDTO"
-	"isOdin/RestApi/internal/models"
-	serReqDTO "isOdin/RestApi/internal/service/requestDTO"
-	serResDTO "isOdin/RestApi/internal/service/responseDTO"
+	mapper "isOdin/RestApi/internal/api"
+	"isOdin/RestApi/internal/entities"
 	"isOdin/RestApi/pkg/api"
-	"isOdin/RestApi/tools/bindchi"
 
-	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
+	"github.com/labstack/echo/v5"
 )
 
 type ItemServiceInterface interface {
-	CreateItem(ctx context.Context, itemInfo models.CreateItemParams) (api.ResponseItem, error)
-	GetAllItems(ctx context.Context, userId uuid.UUID) (*[]serResDTO.GetItem, error)
-	GetItemById(ctx context.Context, itemInfo *serReqDTO.GetItemById) (*api.ResponseItem, error)
-	DeleteItem(ctx context.Context, itemInfo *serReqDTO.DeleteItem) (api.ResponseDeleteItem, error)
-	UpdateItem(ctx context.Context, itemInfo *serReqDTO.UpdateItem) error
+	CreateItem(ctx context.Context, item *entities.Item) (uuid.UUID, error)
+	GetItem(ctx context.Context, item *entities.Item) (*entities.Item, error)
+	DeleteItem(ctx context.Context, item *entities.Item) error
+	UpdateItem(ctx context.Context, item *entities.Item) (*entities.Item, error)
 }
 
 type Item struct {
@@ -45,52 +40,18 @@ func NewItemHandler(validate *validator.Validate, service ItemServiceInterface) 
 // @Success 200 {string} string
 // @Failure default {string} string
 // @Router /api/lists/{list_id}/items [post]
-func (h *Item) CreateItem(w http.ResponseWriter, r *http.Request) {
-	var reqItem api.CreateItem
-	if err := bindchi.BindValidate(r, &reqItem, h.validate); err != nil {
-		logrus.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+func (h *Item) CreateItem(c *echo.Context) error {
+	var itemApi api.CreateItem
+	if err := c.Bind(itemApi); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	itemId, err := h.service.CreateItem(r.Context(), models.ConvertToCreateItemParams(reqItem)) // TODO: to private, контекст и т.д
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	itemId, errService := h.service.CreateItem(c.Request().Context(), mapper.FromCreateItemToEntity(&itemApi))
+	if errService != nil {
+		return c.JSON(http.StatusInternalServerError, errService.Error())
 	}
 
-	// Item -
-
-	render.JSON(w, r, map[string]interface{}{
-		"itemId": itemId,
-	})
-}
-
-// @Summary Get all todo-items
-// @Security ApiKeyAuth
-// @Tags items
-// @ID get-all-items
-// @Accept  json
-// @Produce  json
-// @Success 200 {string} string
-// @Failure default {string} string
-// @Router /api/lists/items [get]
-func (h *Item) GetAllItems(w http.ResponseWriter, r *http.Request) {
-	userId, ok := r.Context().Value("userId").(uuid.UUID)
-	if !ok {
-		http.Error(w, "User id not found", http.StatusInternalServerError)
-		return
-	}
-
-	items, err := h.service.GetAllItems(r.Context(), userId)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	render.JSON(w, r, map[string]interface{}{
-		"items": *items,
-	})
+	return c.JSON(http.StatusOK, itemId)
 }
 
 // @Summary Get todo-item by Id
@@ -103,21 +64,18 @@ func (h *Item) GetAllItems(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {string} string
 // @Failure default {string} string
 // @Router /api/lists/items/{item_id} [get]
-func (h *Item) GetItemById(w http.ResponseWriter, r *http.Request) {
-	var itemInfo requestDTO.GetItemById
-	if err := bindchi.BindValidate(r, &itemInfo, h.validate); err != nil {
-		logrus.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+func (h *Item) GetItem(c *echo.Context) error {
+	var itemApi api.GetItem
+	if err := c.Bind(itemApi); err != nil {
+		return c.JSON(http.StatusBadGateway, err.Error())
 	}
 
-	item, err := h.service.GetItemById(r.Context(), itemInfo.ToServiceModel())
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	item, errService := h.service.GetItem(c.Request().Context(), mapper.FromGetItemToEntity(&itemApi))
+	if errService != nil {
+		return c.JSON(http.StatusInternalServerError, errService.Error())
 	}
 
-	render.JSON(w, r, *item)
+	return c.JSON(http.StatusOK, item)
 }
 
 // @Summary Update todo-item
@@ -131,19 +89,18 @@ func (h *Item) GetItemById(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {string} string
 // @Failure default {string} string
 // @Router /api/lists/items/{item_id} [put]
-func (h *Item) UpdateItem(w http.ResponseWriter, r *http.Request) {
-	var updItem requestDTO.UpdateItem
-	if err := bindchi.BindValidate(r, &updItem, h.validate); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+func (h *Item) UpdateItem(c *echo.Context) error {
+	var itemApi api.UpdateItem
+	if err := c.Bind(itemApi); err != nil {
+		return c.JSON(http.StatusBadGateway, err.Error())
 	}
 
-	if err := h.service.UpdateItem(r.Context(), updItem.ToServiceModel()); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	item, errService := h.service.UpdateItem(c.Request().Context(), mapper.FromUpdateItemToEntity(&itemApi))
+	if errService != nil {
+		return c.JSON(http.StatusInternalServerError, errService.Error)
 	}
 
-	render.JSON(w, r, map[string]interface{}{})
+	return c.JSON(http.StatusOK, item)
 }
 
 // @Summary Delete todo-item
@@ -156,18 +113,16 @@ func (h *Item) UpdateItem(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {string} string
 // @Failure default {string} string
 // @Router /api/lists/items/{item_id} [delete]
-func (h *Item) DeleteItem(w http.ResponseWriter, r *http.Request) {
-	var itemInfo requestDTO.DeleteItem
-	if err := bindchi.BindValidate(r, &itemInfo, h.validate); err != nil {
-		logrus.Error(err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+func (h *Item) DeleteItem(c *echo.Context) error {
+	var itemApi api.DeleteItem
+	if err := c.Bind(itemApi); err != nil {
+		return c.JSON(http.StatusBadGateway, err.Error())
 	}
 
-	if err := h.service.DeleteItem(r.Context(), itemInfo.ToServiceModel()); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	errService := h.service.DeleteItem(c.Request().Context(), mapper.FromDeleteItemToEntity(&itemApi))
+	if errService != nil {
+		return c.JSON(http.StatusInternalServerError, errService.Error)
 	}
 
-	render.JSON(w, r, map[string]interface{}{})
+	return c.JSON(http.StatusOK, "Item deleted")
 }

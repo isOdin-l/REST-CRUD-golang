@@ -21,29 +21,31 @@ func NewListRepository(db *pgxpool.Pool) *ListRepository {
 	return &ListRepository{db: db, psql: sq.StatementBuilder.PlaceholderFormat(sq.Dollar)}
 }
 
-func (r *ListRepository) CreateList(ctx context.Context, list *entities.List) (uuid.UUID, error) {
-	query, value, err := database.InsertList(&r.psql, list.Id, list.Author_id, list.Title, list.Description)
+func (r *ListRepository) CreateList(ctx context.Context, list *entities.List) error {
+	listDb := models.FromListEntityToRepo(list)
+	query, value, err := database.InsertList(&r.psql, listDb.Id, listDb.Author_id, listDb.Title, listDb.Description)
 	if err != nil {
-		return uuid.Nil, err
+		return err
 	}
 
 	_, err = r.db.Exec(ctx, query, value...)
-	return list.Id, err
+	return err
 }
 
-func (r *ListRepository) GetList(ctx context.Context, list *models.List) (*models.List, error) {
-	query, value, err := database.SelectList(&r.psql, list.Id)
+func (r *ListRepository) GetList(ctx context.Context, listId uuid.UUID) (*entities.List, error) {
+	query, value, err := database.SelectList(&r.psql, listId)
 	if err != nil {
 		return nil, err
 	}
 
+	list := &models.List{}
 	err = r.db.QueryRow(ctx, query, value...).Scan(list)
 
-	return list, err
+	return list.ToEntity(), err
 }
 
-func (r *ListRepository) DeleteList(ctx context.Context, list *models.List) error {
-	query, value, err := database.DeleteList(&r.psql, list.Id)
+func (r *ListRepository) DeleteList(ctx context.Context, listId uuid.UUID) error {
+	query, value, err := database.DeleteList(&r.psql, listId)
 	if err != nil {
 		return err
 	}
@@ -52,13 +54,14 @@ func (r *ListRepository) DeleteList(ctx context.Context, list *models.List) erro
 	return err
 }
 
-func (r *ListRepository) UpdateList(ctx context.Context, list *models.List, updateInfo map[string]interface{}) (*models.List, error) {
-	query, value, err := database.UpdateList(&r.psql, list.Id, updateInfo)
+func (r *ListRepository) UpdateList(ctx context.Context, listId uuid.UUID, updateInfo map[string]interface{}) (*entities.List, error) {
+	query, value, err := database.UpdateList(&r.psql, listId, updateInfo)
 	if err != nil {
 		return nil, err
 	}
 
+	list := &models.List{}
 	errDbQuery := r.db.QueryRow(ctx, query, value...).Scan(list)
 
-	return list, errDbQuery
+	return list.ToEntity(), errDbQuery
 }
