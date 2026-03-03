@@ -46,7 +46,11 @@ func (h *Auth) SignUpHandler(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(http.StatusOK, userId)
+	userResp := &entities.User{
+		UserId: userId,
+	}
+
+	return c.JSON(http.StatusOK, mapper.FromEntityToSignUpApi(userResp))
 }
 
 // @Summary SignIn
@@ -69,5 +73,5 @@ func (h *Auth) SignInHandler(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(http.StatusOK, generatedToken)
+	return c.JSON(http.StatusOK, &api.ResponseSignIn{Token: generatedToken})
 }

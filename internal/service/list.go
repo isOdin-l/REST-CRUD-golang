@@ -24,14 +24,14 @@ func NewTodoListService(repo ListRepoInterface) *TodoListService {
 	return &TodoListService{repo: repo}
 }
 
-func (s *TodoListService) CreateList(ctx context.Context, list *entities.List) (uuid.UUID, error) {
+func (s *TodoListService) CreateList(ctx context.Context, list *entities.List) (*entities.List, error) {
 	var err error
 	list.ListId, err = uuid.NewV7()
 	if err != nil {
-		return uuid.Nil, err
+		return nil, err
 	}
 
-	return list.ListId, s.repo.CreateList(ctx, list)
+	return list, s.repo.CreateList(ctx, list)
 }
 
 func (s *TodoListService) GetListById(ctx context.Context, list *entities.List) (*entities.List, error) {

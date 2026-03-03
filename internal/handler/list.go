@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	mapper "isOdin/RestApi/internal/api"
@@ -9,12 +10,11 @@ import (
 	"isOdin/RestApi/pkg/api"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
 )
 
 type ListServiceInterface interface {
-	CreateList(ctx context.Context, list *entities.List) (uuid.UUID, error)
+	CreateList(ctx context.Context, list *entities.List) (*entities.List, error)
 	GetListById(ctx context.Context, list *entities.List) (*entities.List, error)
 	DeleteList(ctx context.Context, list *entities.List) error
 	UpdateList(ctx context.Context, list *entities.List) (*entities.List, error)
@@ -45,12 +45,12 @@ func (h *List) CreateList(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	listId, errService := h.service.CreateList(c.Request().Context(), mapper.FromCreateListToEntity(&listApi))
+	list, errService := h.service.CreateList(c.Request().Context(), mapper.FromCreateListToEntity(&listApi))
 	if errService != nil {
 		return c.JSON(http.StatusInternalServerError, errService.Error)
 	}
 
-	return c.JSON(http.StatusOK, listId)
+	return c.JSON(http.StatusOK, mapper.FromEntityToListApi(list))
 }
 
 // @Summary Get todo-lists by Id
@@ -74,7 +74,7 @@ func (h *List) GetList(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, errService.Error)
 	}
 
-	return c.JSON(http.StatusOK, list)
+	return c.JSON(http.StatusOK, mapper.FromEntityToListApi(list))
 }
 
 // @Summary Update todo-list
@@ -99,7 +99,7 @@ func (h *List) UpdateList(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, errService.Error)
 	}
 
-	return c.JSON(http.StatusOK, list)
+	return c.JSON(http.StatusOK, mapper.FromEntityToListApi(list))
 }
 
 // @Summary Delete todo-list
@@ -123,5 +123,5 @@ func (h *List) DeleteList(c *echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, errService.Error)
 	}
 
-	return c.JSON(http.StatusOK, "List deleted")
+	return c.JSON(http.StatusOK, fmt.Sprintf("List %s deleted", listApi.ListId))
 }

@@ -71,8 +71,7 @@ type DeleteList struct {
 // Authentication
 type ResponseSignUp struct {
 	User struct {
-		UserId   uuid.UUID `json:"id"`
-		Username string    `json:"name"`
+		UserId uuid.UUID `json:"id"`
 	} `json:"user"`
 }
 
@@ -93,9 +92,9 @@ type ResponseItem struct {
 // List
 type ResponseList struct {
 	List struct {
-		ListId      uuid.UUID      `json:"id"`
-		Title       string         `json:"title"`
-		Description string         `json:"description"`
-		Items       []ResponseItem `json:"items"`
+		ListId      uuid.UUID `json:"id"`
+		Title       string    `json:"title"`
+		Description string    `json:"description"`
+		//Items       []ResponseItem `json:"items"`
 	}
 }
