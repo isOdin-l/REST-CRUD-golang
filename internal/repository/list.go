@@ -9,15 +9,14 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type ListRepository struct {
-	db   *pgxpool.Pool
+	db   IDatabase
 	psql sq.StatementBuilderType
 }
 
-func NewListRepository(db *pgxpool.Pool) *ListRepository {
+func NewListRepository(db IDatabase) *ListRepository {
 	return &ListRepository{db: db, psql: sq.StatementBuilder.PlaceholderFormat(sq.Dollar)}
 }
 
@@ -28,8 +27,7 @@ func (r *ListRepository) CreateList(ctx context.Context, list *entities.List) er
 		return err
 	}
 
-	_, err = r.db.Exec(ctx, query, value...)
-	return err
+	return r.db.Exec(ctx, query, value...)
 }
 
 func (r *ListRepository) GetList(ctx context.Context, listId uuid.UUID) (*entities.List, error) {
@@ -39,7 +37,7 @@ func (r *ListRepository) GetList(ctx context.Context, listId uuid.UUID) (*entiti
 	}
 
 	list := &models.List{}
-	err = r.db.QueryRow(ctx, query, value...).Scan(list)
+	err = r.db.QueryRow(ctx, list, query, value...)
 
 	return list.ToEntity(), err
 }
@@ -49,9 +47,7 @@ func (r *ListRepository) DeleteList(ctx context.Context, listId uuid.UUID) error
 	if err != nil {
 		return err
 	}
-	_, err = r.db.Exec(ctx, query, value...)
-
-	return err
+	return r.db.Exec(ctx, query, value...)
 }
 
 func (r *ListRepository) UpdateList(ctx context.Context, listId uuid.UUID, updateInfo map[string]interface{}) (*entities.List, error) {
@@ -61,7 +57,7 @@ func (r *ListRepository) UpdateList(ctx context.Context, listId uuid.UUID, updat
 	}
 
 	list := &models.List{}
-	errDbQuery := r.db.QueryRow(ctx, query, value...).Scan(list)
+	errDbQuery := r.db.QueryRow(ctx, list, query, value...)
 
 	return list.ToEntity(), errDbQuery
 }

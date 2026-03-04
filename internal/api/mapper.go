@@ -52,12 +52,15 @@ func FromGetItemToEntity(req *api.GetItem) *entities.Item {
 }
 
 func FromUpdateItemToEntity(req *api.UpdateItem) *entities.Item {
-	return &entities.Item{
+	item := &entities.Item{
 		ItemId:      req.ItemId,
 		Title:       req.Title,
 		Description: req.Description,
-		Done:        req.Done,
 	}
+	if req.Done != nil {
+		item.Done = *req.Done
+	}
+	return item
 }
 
 func FromDeleteItemToEntity(req *api.DeleteItem) *entities.Item {

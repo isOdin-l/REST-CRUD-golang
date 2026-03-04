@@ -9,15 +9,14 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type ItemRepository struct {
-	db   *pgxpool.Pool
+	db   IDatabase
 	psql sq.StatementBuilderType
 }
 
-func NewItemRepository(db *pgxpool.Pool) *ItemRepository {
+func NewItemRepository(db IDatabase) *ItemRepository {
 	return &ItemRepository{db: db, psql: sq.StatementBuilder.PlaceholderFormat(sq.Dollar)}
 }
 
@@ -28,9 +27,7 @@ func (r *ItemRepository) CreateItem(ctx context.Context, item *entities.Item) er
 		return err
 	}
 
-	_, err = r.db.Exec(ctx, query, values...)
-
-	return err
+	return r.db.Exec(ctx, query, values...)
 }
 
 func (r *ItemRepository) GetItem(ctx context.Context, itemId uuid.UUID) (*entities.Item, error) {
@@ -40,7 +37,7 @@ func (r *ItemRepository) GetItem(ctx context.Context, itemId uuid.UUID) (*entiti
 	}
 
 	item := &models.Item{}
-	if errQuery := r.db.QueryRow(ctx, query, value...).Scan(item); errQuery != nil {
+	if errQuery := r.db.QueryRow(ctx, item, query, value...); errQuery != nil {
 		return nil, errQuery
 	}
 
@@ -52,9 +49,7 @@ func (r *ItemRepository) DeleteItem(ctx context.Context, itemId uuid.UUID) error
 		return err
 	}
 
-	_, err = r.db.Exec(ctx, query, value...)
-
-	return err
+	return r.db.Exec(ctx, query, value...)
 }
 
 func (r *ItemRepository) UpdateItem(ctx context.Context, itemId uuid.UUID, updateInfo map[string]interface{}) (*entities.Item, error) {
@@ -63,7 +58,7 @@ func (r *ItemRepository) UpdateItem(ctx context.Context, itemId uuid.UUID, updat
 		return nil, err
 	}
 	item := &models.Item{}
-	if errDbQuery := r.db.QueryRow(ctx, query, values...).Scan(item); errDbQuery != nil {
+	if errDbQuery := r.db.QueryRow(ctx, item, query, values...); errDbQuery != nil {
 		return nil, errDbQuery
 	}
 

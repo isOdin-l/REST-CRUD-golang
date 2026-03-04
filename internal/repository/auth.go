@@ -9,15 +9,14 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type AuthRepository struct {
-	db   *pgxpool.Pool
+	db   IDatabase
 	psql sq.StatementBuilderType
 }
 
-func NewAuthRepository(db *pgxpool.Pool) *AuthRepository {
+func NewAuthRepository(db IDatabase) *AuthRepository {
 	return &AuthRepository{db: db, psql: sq.StatementBuilder.PlaceholderFormat(sq.Dollar)}
 }
 
@@ -28,9 +27,7 @@ func (r *AuthRepository) CreateUser(ctx context.Context, user *entities.User) er
 		return err
 	}
 
-	_, errDbExec := r.db.Exec(ctx, query, value...)
-
-	return errDbExec
+	return r.db.Exec(ctx, query, value...)
 }
 
 func (r *AuthRepository) GetUser(ctx context.Context, userId uuid.UUID) (*entities.User, error) {
@@ -40,7 +37,7 @@ func (r *AuthRepository) GetUser(ctx context.Context, userId uuid.UUID) (*entiti
 	}
 
 	userDb := &models.User{}
-	err = r.db.QueryRow(ctx, query, value...).Scan(userDb)
+	err = r.db.QueryRow(ctx, userDb, query, value...)
 
 	return userDb.ToEntity(), err
 }

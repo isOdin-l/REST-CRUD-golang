@@ -8,9 +8,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func NewPostgresDB(cfg *configs.Config) (*pgxpool.Pool, error) {
-	conn, err := pgxpool.New(context.Background(), cfg.DSN())
+type PostgresDB struct {
+	conn *pgxpool.Pool
+}
 
+func NewPostgresDB(cfg *configs.Config) (*PostgresDB, error) {
+	conn, err := pgxpool.New(context.Background(), cfg.DSN())
 	if err != nil {
 		return nil, err
 	}
@@ -19,5 +22,18 @@ func NewPostgresDB(cfg *configs.Config) (*pgxpool.Pool, error) {
 		return nil, err
 	}
 
-	return conn, nil
+	return &PostgresDB{conn: conn}, nil
+}
+
+func (ps *PostgresDB) Exec(ctx context.Context, sql string, values ...interface{}) error {
+	_, err := ps.conn.Exec(ctx, sql, values...)
+	return err
+}
+
+func (ps *PostgresDB) QueryRow(ctx context.Context, recieveObject interface{}, sql string, values ...interface{}) error {
+	return ps.conn.QueryRow(ctx, sql, values...).Scan(&recieveObject)
+}
+
+func (ps *PostgresDB) Close() {
+	ps.conn.Close()
 }
