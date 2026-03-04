@@ -14,9 +14,9 @@ type SignUp struct {
 }
 
 type SignIn struct {
-	UserId   uuid.UUID `header:"Authorization"`
-	Username string    `json:"username"`
-	Password string    `json:"password"`
+	UserId   uuid.UUID
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 // Item
@@ -32,8 +32,8 @@ type GetItem struct {
 
 type UpdateItem struct {
 	ItemId      uuid.UUID `param:"item_id"`
-	Title       string    `json:"title" validate:"optional"`
-	Description string    `json:"description" validate:"optional"`
+	Title       *string   `json:"title" validate:"optional"`
+	Description *string   `json:"description" validate:"optional"`
 	Done        *bool     `json:"done" validate:"optional"`
 }
 
@@ -43,9 +43,9 @@ type DeleteItem struct {
 
 // List
 type CreateList struct {
-	UserId      uuid.UUID `header:"Authorization"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
+	UserId      uuid.UUID
+	Title       string `json:"title"`
+	Description string `json:"description"`
 }
 
 type GetList struct {
@@ -53,11 +53,10 @@ type GetList struct {
 }
 
 type UpdateList struct {
-	UserId      uuid.UUID `header:"Authorization"`
+	UserId      uuid.UUID
 	ListId      uuid.UUID `param:"list_id"`
-	Title       string    `json:"title" validate:"optional"`
-	Description string    `json:"description" validate:"optional"`
-	Done        bool      `json:"done" validate:"optional"`
+	Title       *string   `json:"title" validate:"optional"`
+	Description *string   `json:"description" validate:"optional"`
 }
 
 type DeleteList struct {

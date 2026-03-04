@@ -1,8 +1,6 @@
 package server
 
 import (
-	"net/http"
-
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 
@@ -28,7 +26,7 @@ type HandlerInterface interface {
 }
 
 type MiddlewareInterface interface {
-	JWTAuth(next http.Handler) http.Handler
+	JWTAuth() echo.MiddlewareFunc
 }
 
 func NewRouter(e *echo.Echo, md MiddlewareInterface, h HandlerInterface) {
@@ -43,6 +41,8 @@ func NewRouter(e *echo.Echo, md MiddlewareInterface, h HandlerInterface) {
 	auth.POST("/sign-up", h.SignUpHandler)
 
 	list := api.Group("/list")
+	list.Use(md.JWTAuth())
+
 	list.POST("/", h.CreateList)
 	list.GET("/:list_id", h.GetList)
 	list.PUT("/:list_id", h.UpdateList)

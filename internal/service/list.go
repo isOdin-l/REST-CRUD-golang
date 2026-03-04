@@ -45,20 +45,20 @@ func (s *TodoListService) DeleteList(ctx context.Context, list *entities.List) *
 	return s.repo.DeleteList(ctx, list.ListId)
 }
 
-func (s *TodoListService) UpdateList(ctx context.Context, list *entities.List) (*entities.List, *errors.AppError) {
+func (s *TodoListService) UpdateList(ctx context.Context, list *entities.UpdateList) (*entities.List, *errors.AppError) {
 	updateInfo := make(map[string]interface{})
+	k := reflect.TypeOf(*list)
 	v := reflect.ValueOf(*list)
-	t := reflect.TypeOf(*list)
 
 	for i := 0; i < v.NumField(); i++ {
-		fieldName := t.Field(i).Name
+		fieldName := k.Field(i).Name
 		fieldValue := v.Field(i)
 
 		if fieldName == "UserId" || fieldName == "ListId" {
 			continue
 		}
 
-		if !fieldValue.IsZero() {
+		if !fieldValue.IsNil() {
 			dbColumnName := strings.ToLower(fieldName)
 			updateInfo[dbColumnName] = fieldValue.Interface()
 		}

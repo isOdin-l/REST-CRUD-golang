@@ -72,6 +72,7 @@ func (h *Auth) SignInHandler(c *echo.Context) error {
 	if err := c.Bind(&userApi); err != nil {
 		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
+	userApi.UserId = c.Get("userId").(uuid.UUID)
 
 	if err := h.validate.Struct(userApi); err != nil {
 		return errors.ResponseError(c, errors.ErrValidation)
