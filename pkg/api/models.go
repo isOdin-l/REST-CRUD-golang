@@ -96,5 +96,13 @@ type ResponseList struct {
 		Title       string    `json:"title"`
 		Description string    `json:"description"`
 		//Items       []ResponseItem `json:"items"`
+	} `json:"list"`
+}
+
+// Error
+type ResponseError struct {
+	Error struct {
+		HttpCode int    `json:"code"`
+		Message  string `json:"message"`
 	}
 }

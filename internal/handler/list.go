@@ -7,6 +7,7 @@ import (
 
 	mapper "isOdin/RestApi/internal/api"
 	"isOdin/RestApi/internal/entities"
+	"isOdin/RestApi/internal/errors"
 	"isOdin/RestApi/pkg/api"
 
 	"github.com/go-playground/validator/v10"
@@ -14,10 +15,10 @@ import (
 )
 
 type ListServiceInterface interface {
-	CreateList(ctx context.Context, list *entities.List) (*entities.List, error)
-	GetListById(ctx context.Context, list *entities.List) (*entities.List, error)
-	DeleteList(ctx context.Context, list *entities.List) error
-	UpdateList(ctx context.Context, list *entities.List) (*entities.List, error)
+	CreateList(ctx context.Context, list *entities.List) (*entities.List, *errors.AppError)
+	GetListById(ctx context.Context, list *entities.List) (*entities.List, *errors.AppError)
+	DeleteList(ctx context.Context, list *entities.List) *errors.AppError
+	UpdateList(ctx context.Context, list *entities.List) (*entities.List, *errors.AppError)
 }
 
 type List struct {
@@ -41,13 +42,17 @@ func NewListHandler(validate *validator.Validate, service ListServiceInterface) 
 // @Router /api/lists [post]
 func (h *List) CreateList(c *echo.Context) error {
 	var listApi api.CreateList
-	if err := c.Bind(listApi); err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+	if err := c.Bind(&listApi); err != nil {
+		return errors.ResponseError(c, errors.ErrBadRequest)
+	}
+
+	if err := h.validate.Struct(listApi); err != nil {
+		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
 
 	list, errService := h.service.CreateList(c.Request().Context(), mapper.FromCreateListToEntity(&listApi))
 	if errService != nil {
-		return c.JSON(http.StatusInternalServerError, errService.Error)
+		return errors.ResponseError(c, errService)
 	}
 
 	return c.JSON(http.StatusOK, mapper.FromEntityToListApi(list))
@@ -65,13 +70,13 @@ func (h *List) CreateList(c *echo.Context) error {
 // @Router /api/lists/{list_id} [get]
 func (h *List) GetList(c *echo.Context) error {
 	var listApi api.GetList
-	if err := c.Bind(listApi); err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+	if err := c.Bind(&listApi); err != nil {
+		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
 
 	list, errService := h.service.GetListById(c.Request().Context(), mapper.FromGetListToEntity(&listApi))
 	if errService != nil {
-		return c.JSON(http.StatusInternalServerError, errService.Error)
+		return errors.ResponseError(c, errService)
 	}
 
 	return c.JSON(http.StatusOK, mapper.FromEntityToListApi(list))
@@ -90,13 +95,17 @@ func (h *List) GetList(c *echo.Context) error {
 // @Router /api/lists/{list_id} [put]
 func (h *List) UpdateList(c *echo.Context) error {
 	var listApi api.UpdateList
-	if err := c.Bind(listApi); err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+	if err := c.Bind(&listApi); err != nil {
+		return errors.ResponseError(c, errors.ErrBadRequest)
+	}
+
+	if err := h.validate.Struct(listApi); err != nil {
+		return errors.ResponseError(c, errors.ErrValidation)
 	}
 
 	list, errService := h.service.UpdateList(c.Request().Context(), mapper.FromUpdateListToEntity(&listApi))
 	if errService != nil {
-		return c.JSON(http.StatusInternalServerError, errService.Error)
+		return errors.ResponseError(c, errService)
 	}
 
 	return c.JSON(http.StatusOK, mapper.FromEntityToListApi(list))
@@ -114,14 +123,16 @@ func (h *List) UpdateList(c *echo.Context) error {
 // @Router /api/lists/{list_id} [delete]
 func (h *List) DeleteList(c *echo.Context) error {
 	var listApi api.DeleteList
-	if err := c.Bind(listApi); err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+	if err := c.Bind(&listApi); err != nil {
+		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
 
 	errService := h.service.DeleteList(c.Request().Context(), mapper.FromDeleteListToEntity(&listApi))
 	if errService != nil {
-		return c.JSON(http.StatusInternalServerError, errService.Error)
+		return errors.ResponseError(c, errService)
 	}
 
-	return c.JSON(http.StatusOK, fmt.Sprintf("List %s deleted", listApi.ListId))
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"message": fmt.Sprintf("List %s deleted", listApi.ListId),
+	})
 }

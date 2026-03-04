@@ -8,6 +8,7 @@ import (
 
 	"isOdin/RestApi/configs"
 	"isOdin/RestApi/internal/entities"
+	"isOdin/RestApi/internal/errors"
 	jwtToken "isOdin/RestApi/internal/middleware/dto"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -15,8 +16,8 @@ import (
 )
 
 type AuthRepoInterface interface {
-	CreateUser(ctx context.Context, user *entities.User) error
-	GetUser(ctx context.Context, userId uuid.UUID) (*entities.User, error)
+	CreateUser(ctx context.Context, user *entities.User) *errors.AppError
+	GetUser(ctx context.Context, userId uuid.UUID) (*entities.User, *errors.AppError)
 }
 
 type AuthService struct {
@@ -28,23 +29,24 @@ func NewAuthService(cfg *configs.InternalConfig, repo AuthRepoInterface) *AuthSe
 	return &AuthService{cfg: cfg, repo: repo}
 }
 
-func (s *AuthService) CreateUser(ctx context.Context, user *entities.User) (uuid.UUID, error) {
+func (s *AuthService) CreateUser(ctx context.Context, user *entities.User) (uuid.UUID, *errors.AppError) {
 	var err error
 	user.UserId, err = uuid.NewV7()
 	if err != nil {
-		return uuid.Nil, err
+		return uuid.Nil, errors.NewInternalError(err)
 	}
 	user.Password = s.generatePasswordHash(user.Password)
 
-	return user.UserId, s.repo.CreateUser(ctx, user)
+	errRepo := s.repo.CreateUser(ctx, user)
+	return user.UserId, errRepo
 }
 
-func (s *AuthService) GenerateToken(ctx context.Context, user *entities.User) (string, error) {
+func (s *AuthService) GenerateToken(ctx context.Context, user *entities.User) (string, *errors.AppError) {
 	user.Password = s.generatePasswordHash(user.Password)
 
-	userFromDB, err := s.repo.GetUser(ctx, user.UserId)
-	if err != nil {
-		return "", err
+	userFromDB, errRepo := s.repo.GetUser(ctx, user.UserId)
+	if errRepo != nil {
+		return "", errRepo
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwtToken.TokenClaims{
@@ -55,7 +57,11 @@ func (s *AuthService) GenerateToken(ctx context.Context, user *entities.User) (s
 		UserId: userFromDB.UserId,
 	})
 
-	return token.SignedString([]byte(s.cfg.JWT_SIGNING_KEY))
+	tokenString, errJwt := token.SignedString([]byte(s.cfg.JWT_SIGNING_KEY))
+	if errJwt != nil {
+		return "", errors.NewInternalError(errJwt)
+	}
+	return tokenString, nil
 }
 
 func (s *AuthService) generatePasswordHash(password string) string {
