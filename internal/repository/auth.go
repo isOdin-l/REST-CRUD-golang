@@ -3,26 +3,29 @@ package repository
 import (
 	"context"
 
-	"isOdin/RestApi/internal/database"
 	"isOdin/RestApi/internal/entities"
 	"isOdin/RestApi/internal/repository/models"
 
-	sq "github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
 )
 
-type AuthRepository struct {
-	db   IDatabase
-	psql sq.StatementBuilderType
+type IAuthSql interface {
+	InsertUser(values ...any) (string, []interface{}, error)
+	SelectUser(userId uuid.UUID) (string, []interface{}, error)
 }
 
-func NewAuthRepository(db IDatabase) *AuthRepository {
-	return &AuthRepository{db: db, psql: sq.StatementBuilder.PlaceholderFormat(sq.Dollar)}
+type AuthRepository struct {
+	db         IDatabase
+	sqlBuilder IAuthSql
+}
+
+func NewAuthRepository(db IDatabase, sqlBuilder IAuthSql) *AuthRepository {
+	return &AuthRepository{db: db, sqlBuilder: sqlBuilder}
 }
 
 func (r *AuthRepository) CreateUser(ctx context.Context, user *entities.User) error {
 	userDb := models.FromUserEntityToRepo(user)
-	query, value, err := database.InsertUser(&r.psql, userDb.Id, userDb.Name, userDb.Username, userDb.Password_hash)
+	query, value, err := r.sqlBuilder.InsertUser(userDb.Id, userDb.Name, userDb.Username, userDb.Password_hash)
 	if err != nil {
 		return err
 	}
@@ -31,7 +34,7 @@ func (r *AuthRepository) CreateUser(ctx context.Context, user *entities.User) er
 }
 
 func (r *AuthRepository) GetUser(ctx context.Context, userId uuid.UUID) (*entities.User, error) {
-	query, value, err := database.SelectUser(&r.psql, userId)
+	query, value, err := r.sqlBuilder.SelectUser(userId)
 	if err != nil {
 		return nil, err
 	}
