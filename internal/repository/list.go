@@ -3,26 +3,31 @@ package repository
 import (
 	"context"
 
-	"isOdin/RestApi/internal/database"
 	"isOdin/RestApi/internal/entities"
 	"isOdin/RestApi/internal/repository/models"
 
-	sq "github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
 )
 
-type ListRepository struct {
-	db   IDatabase
-	psql sq.StatementBuilderType
+type IListSql interface {
+	InsertList(values ...any) (string, []interface{}, error)
+	SelectList(listId uuid.UUID) (string, []interface{}, error)
+	UpdateList(author_id uuid.UUID, updateData map[string]interface{}) (string, []interface{}, error)
+	DeleteList(listId uuid.UUID) (string, []interface{}, error)
 }
 
-func NewListRepository(db IDatabase) *ListRepository {
-	return &ListRepository{db: db, psql: sq.StatementBuilder.PlaceholderFormat(sq.Dollar)}
+type ListRepository struct {
+	db         IDatabase
+	sqlBuilder IListSql
+}
+
+func NewListRepository(db IDatabase, sqlBuilder IListSql) *ListRepository {
+	return &ListRepository{db: db, sqlBuilder: sqlBuilder}
 }
 
 func (r *ListRepository) CreateList(ctx context.Context, list *entities.List) error {
 	listDb := models.FromListEntityToRepo(list)
-	query, value, err := database.InsertList(&r.psql, listDb.Id, listDb.Author_id, listDb.Title, listDb.Description)
+	query, value, err := r.sqlBuilder.InsertList(listDb.Id, listDb.Author_id, listDb.Title, listDb.Description)
 	if err != nil {
 		return err
 	}
@@ -31,7 +36,7 @@ func (r *ListRepository) CreateList(ctx context.Context, list *entities.List) er
 }
 
 func (r *ListRepository) GetList(ctx context.Context, listId uuid.UUID) (*entities.List, error) {
-	query, value, err := database.SelectList(&r.psql, listId)
+	query, value, err := r.sqlBuilder.SelectList(listId)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +48,7 @@ func (r *ListRepository) GetList(ctx context.Context, listId uuid.UUID) (*entiti
 }
 
 func (r *ListRepository) DeleteList(ctx context.Context, listId uuid.UUID) error {
-	query, value, err := database.DeleteList(&r.psql, listId)
+	query, value, err := r.sqlBuilder.DeleteList(listId)
 	if err != nil {
 		return err
 	}
@@ -51,7 +56,7 @@ func (r *ListRepository) DeleteList(ctx context.Context, listId uuid.UUID) error
 }
 
 func (r *ListRepository) UpdateList(ctx context.Context, listId uuid.UUID, updateInfo map[string]interface{}) (*entities.List, error) {
-	query, value, err := database.UpdateList(&r.psql, listId, updateInfo)
+	query, value, err := r.sqlBuilder.UpdateList(listId, updateInfo)
 	if err != nil {
 		return nil, err
 	}

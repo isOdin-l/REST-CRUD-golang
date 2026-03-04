@@ -22,7 +22,7 @@ func NewPostgresDB(cfg *configs.Config) (*PostgresDB, error) {
 		return nil, err
 	}
 
-	return &PostgresDB{conn: conn}, nil
+	return &PostgresDB{conn}, nil
 }
 
 func (ps *PostgresDB) Exec(ctx context.Context, sql string, values ...interface{}) error {

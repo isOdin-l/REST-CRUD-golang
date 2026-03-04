@@ -3,26 +3,31 @@ package repository
 import (
 	"context"
 
-	"isOdin/RestApi/internal/database"
 	"isOdin/RestApi/internal/entities"
 	"isOdin/RestApi/internal/repository/models"
 
-	sq "github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
 )
 
-type ItemRepository struct {
-	db   IDatabase
-	psql sq.StatementBuilderType
+type IItemSql interface {
+	InsertItem(values ...any) (string, []interface{}, error)
+	SelectItem(itemId uuid.UUID) (string, []interface{}, error)
+	UpdateItem(itemId uuid.UUID, updateData map[string]interface{}) (string, []interface{}, error)
+	DeleteItem(itemId uuid.UUID) (string, []interface{}, error)
 }
 
-func NewItemRepository(db IDatabase) *ItemRepository {
-	return &ItemRepository{db: db, psql: sq.StatementBuilder.PlaceholderFormat(sq.Dollar)}
+type ItemRepository struct {
+	db         IDatabase
+	sqlBuilder IItemSql
+}
+
+func NewItemRepository(db IDatabase, sqlBuilder IItemSql) *ItemRepository {
+	return &ItemRepository{db: db, sqlBuilder: sqlBuilder}
 }
 
 func (r *ItemRepository) CreateItem(ctx context.Context, item *entities.Item) error {
 	itemDb := models.FromItemEntityToRepo(item)
-	query, values, err := database.InsertItem(&r.psql, itemDb.Id, itemDb.List_id, itemDb.Title, itemDb.Description)
+	query, values, err := r.sqlBuilder.InsertItem(itemDb.Id, itemDb.List_id, itemDb.Title, itemDb.Description)
 	if err != nil {
 		return err
 	}
@@ -31,7 +36,7 @@ func (r *ItemRepository) CreateItem(ctx context.Context, item *entities.Item) er
 }
 
 func (r *ItemRepository) GetItem(ctx context.Context, itemId uuid.UUID) (*entities.Item, error) {
-	query, value, errBuilder := database.SelectItem(&r.psql, itemId)
+	query, value, errBuilder := r.sqlBuilder.SelectItem(itemId)
 	if errBuilder != nil {
 		return nil, errBuilder
 	}
@@ -44,7 +49,7 @@ func (r *ItemRepository) GetItem(ctx context.Context, itemId uuid.UUID) (*entiti
 	return item.ToEntity(), nil
 }
 func (r *ItemRepository) DeleteItem(ctx context.Context, itemId uuid.UUID) error {
-	query, value, err := database.DeleteItem(&r.psql, itemId)
+	query, value, err := r.sqlBuilder.DeleteItem(itemId)
 	if err != nil {
 		return err
 	}
@@ -53,7 +58,7 @@ func (r *ItemRepository) DeleteItem(ctx context.Context, itemId uuid.UUID) error
 }
 
 func (r *ItemRepository) UpdateItem(ctx context.Context, itemId uuid.UUID, updateInfo map[string]interface{}) (*entities.Item, error) {
-	query, values, err := database.UpdateItem(&r.psql, itemId, updateInfo)
+	query, values, err := r.sqlBuilder.UpdateItem(itemId, updateInfo)
 	if err != nil {
 		return nil, err
 	}

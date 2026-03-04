@@ -6,6 +6,7 @@ import (
 
 	"isOdin/RestApi/configs"
 	"isOdin/RestApi/internal/database/postgresql"
+	"isOdin/RestApi/internal/database/sqlbuilder"
 	"isOdin/RestApi/internal/handler"
 	"isOdin/RestApi/internal/middleware"
 	"isOdin/RestApi/internal/repository"
@@ -48,12 +49,12 @@ func main() {
 	}
 	defer DB.Close()
 
-	repository := repository.NewRepository(DB)                       //----- Repository -----
-	service := service.NewService(&cfg.InternalConfig, repository)   // ----- Service -----
-	validate := validator.New(validator.WithRequiredStructEnabled()) // ----- Validator -----
-	middleware := middleware.NewMiddleware(&cfg.InternalConfig)      // ----- Middleware -----
-	handler := handler.NewHandler(validate, service)                 // ----- Handler -----
-	server.NewRouter(router, middleware, handler)                    // ----- Routing -----
+	repository := repository.NewRepository(DB, sqlbuilder.NewSqlBuilder()) //----- Repository -----
+	service := service.NewService(&cfg.InternalConfig, repository)         // ----- Service -----
+	validate := validator.New(validator.WithRequiredStructEnabled())       // ----- Validator -----
+	middleware := middleware.NewMiddleware(&cfg.InternalConfig)            // ----- Middleware -----
+	handler := handler.NewHandler(validate, service)                       // ----- Handler -----
+	server.NewRouter(router, middleware, handler)                          // ----- Routing -----
 
 	// Server start
 	if err := server.RunServer(router, &ctx, ":8000"); err != nil {
