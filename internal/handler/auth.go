@@ -4,6 +4,7 @@ import (
 	"context"
 	mapper "isOdin/RestApi/internal/api"
 	"isOdin/RestApi/internal/entities"
+	"isOdin/RestApi/internal/errors"
 	"isOdin/RestApi/pkg/api"
 	"net/http"
 
@@ -13,8 +14,8 @@ import (
 )
 
 type AuthServiceInterface interface {
-	CreateUser(ctx context.Context, user *entities.User) (uuid.UUID, error)
-	GenerateToken(ctx context.Context, user *entities.User) (string, error)
+	CreateUser(ctx context.Context, user *entities.User) (uuid.UUID, *errors.AppError)
+	GenerateToken(ctx context.Context, user *entities.User) (string, *errors.AppError)
 }
 
 type Auth struct {
@@ -38,12 +39,16 @@ func NewAuthHandler(validate *validator.Validate, service AuthServiceInterface) 
 func (h *Auth) SignUpHandler(c *echo.Context) error {
 	userFromApi := new(api.SignUp)
 	if err := c.Bind(userFromApi); err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
 
-	userId, err := h.service.CreateUser(c.Request().Context(), mapper.FromSignUpApiToEntity(userFromApi))
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err.Error())
+	if err := h.validate.Struct(userFromApi); err != nil {
+		return errors.ResponseError(c, errors.ErrValidation)
+	}
+
+	userId, errService := h.service.CreateUser(c.Request().Context(), mapper.FromSignUpApiToEntity(userFromApi))
+	if errService != nil {
+		return errors.ResponseError(c, errService)
 	}
 
 	userResp := &entities.User{
@@ -64,13 +69,17 @@ func (h *Auth) SignUpHandler(c *echo.Context) error {
 // @Router /auth/sign-in [post]
 func (h *Auth) SignInHandler(c *echo.Context) error {
 	var userApi api.SignIn
-	if err := c.Bind(userApi); err != nil {
-		return c.JSON(http.StatusBadGateway, err.Error())
+	if err := c.Bind(&userApi); err != nil {
+		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
 
-	generatedToken, err := h.service.GenerateToken(c.Request().Context(), mapper.FromSignInApiToEntity(&userApi))
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err.Error())
+	if err := h.validate.Struct(userApi); err != nil {
+		return errors.ResponseError(c, errors.ErrValidation)
+	}
+
+	generatedToken, errService := h.service.GenerateToken(c.Request().Context(), mapper.FromSignInApiToEntity(&userApi))
+	if errService != nil {
+		return errors.ResponseError(c, errService)
 	}
 
 	return c.JSON(http.StatusOK, &api.ResponseSignIn{Token: generatedToken})

@@ -3,17 +3,19 @@ package service
 import (
 	"context"
 	"reflect"
+	"strings"
 
 	"isOdin/RestApi/internal/entities"
+	"isOdin/RestApi/internal/errors"
 
 	"github.com/google/uuid"
 )
 
 type ItemRepoInterface interface {
-	CreateItem(ctx context.Context, item *entities.Item) error
-	GetItem(ctx context.Context, itemId uuid.UUID) (*entities.Item, error)
-	UpdateItem(ctx context.Context, itemId uuid.UUID, updateInfo map[string]interface{}) (*entities.Item, error)
-	DeleteItem(ctx context.Context, itemId uuid.UUID) error
+	CreateItem(ctx context.Context, item *entities.Item) *errors.AppError
+	GetItem(ctx context.Context, itemId uuid.UUID) (*entities.Item, *errors.AppError)
+	UpdateItem(ctx context.Context, itemId uuid.UUID, updateInfo map[string]interface{}) (*entities.Item, *errors.AppError)
+	DeleteItem(ctx context.Context, itemId uuid.UUID) *errors.AppError
 }
 
 type TodoItemService struct {
@@ -24,32 +26,45 @@ func NewTodoItemService(repo ItemRepoInterface) *TodoItemService {
 	return &TodoItemService{repo: repo}
 }
 
-func (s *TodoItemService) CreateItem(ctx context.Context, item *entities.Item) (*entities.Item, error) {
+func (s *TodoItemService) CreateItem(ctx context.Context, item *entities.Item) (*entities.Item, *errors.AppError) {
 	var err error
 	item.ItemId, err = uuid.NewV7()
 	if err != nil {
-		return nil, err
+		return nil, errors.NewInternalError(err)
 	}
-	return item, s.repo.CreateItem(ctx, item)
+	errRepo := s.repo.CreateItem(ctx, item)
+	return item, errRepo
 }
 
-func (s *TodoItemService) GetItem(ctx context.Context, item *entities.Item) (*entities.Item, error) {
+func (s *TodoItemService) GetItem(ctx context.Context, item *entities.Item) (*entities.Item, *errors.AppError) {
 	return s.repo.GetItem(ctx, item.ItemId)
 }
 
-func (s *TodoItemService) DeleteItem(ctx context.Context, item *entities.Item) error {
+func (s *TodoItemService) DeleteItem(ctx context.Context, item *entities.Item) *errors.AppError {
 	return s.repo.DeleteItem(ctx, item.ItemId)
 }
 
-func (s *TodoItemService) UpdateItem(ctx context.Context, item *entities.Item) (*entities.Item, error) {
-	k := reflect.TypeOf(*item)
-	v := reflect.ValueOf(*item)
+func (s *TodoItemService) UpdateItem(ctx context.Context, item *entities.Item) (*entities.Item, *errors.AppError) {
 	updateInfo := make(map[string]interface{})
+	v := reflect.ValueOf(*item)
+	t := reflect.TypeOf(*item)
 
-	for i := 0; i < k.NumField(); i++ {
-		if !v.IsNil() {
-			updateInfo[k.Field(i).Name] = v.Field(i)
+	for i := 0; i < v.NumField(); i++ {
+		fieldName := t.Field(i).Name
+		fieldValue := v.Field(i)
+
+		if fieldName == "ListId" || fieldName == "ItemId" {
+			continue
 		}
+
+		if !fieldValue.IsZero() {
+			dbColumnName := strings.ToLower(fieldName)
+			updateInfo[dbColumnName] = fieldValue.Interface()
+		}
+	}
+
+	if len(updateInfo) == 0 {
+		return s.repo.GetItem(ctx, item.ItemId)
 	}
 
 	return s.repo.UpdateItem(ctx, item.ItemId, updateInfo)

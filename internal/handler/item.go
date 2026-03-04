@@ -7,6 +7,7 @@ import (
 
 	mapper "isOdin/RestApi/internal/api"
 	"isOdin/RestApi/internal/entities"
+	"isOdin/RestApi/internal/errors"
 	"isOdin/RestApi/pkg/api"
 
 	"github.com/go-playground/validator/v10"
@@ -14,10 +15,10 @@ import (
 )
 
 type ItemServiceInterface interface {
-	CreateItem(ctx context.Context, item *entities.Item) (*entities.Item, error)
-	GetItem(ctx context.Context, item *entities.Item) (*entities.Item, error)
-	DeleteItem(ctx context.Context, item *entities.Item) error
-	UpdateItem(ctx context.Context, item *entities.Item) (*entities.Item, error)
+	CreateItem(ctx context.Context, item *entities.Item) (*entities.Item, *errors.AppError)
+	GetItem(ctx context.Context, item *entities.Item) (*entities.Item, *errors.AppError)
+	DeleteItem(ctx context.Context, item *entities.Item) *errors.AppError
+	UpdateItem(ctx context.Context, item *entities.Item) (*entities.Item, *errors.AppError)
 }
 
 type Item struct {
@@ -42,13 +43,17 @@ func NewItemHandler(validate *validator.Validate, service ItemServiceInterface) 
 // @Router /api/lists/{list_id}/items [post]
 func (h *Item) CreateItem(c *echo.Context) error {
 	var itemApi api.CreateItem
-	if err := c.Bind(itemApi); err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+	if err := c.Bind(&itemApi); err != nil {
+		return errors.ResponseError(c, errors.ErrBadRequest)
+	}
+
+	if err := h.validate.Struct(itemApi); err != nil {
+		return errors.ResponseError(c, errors.ErrValidation)
 	}
 
 	item, errService := h.service.CreateItem(c.Request().Context(), mapper.FromCreateItemToEntity(&itemApi))
 	if errService != nil {
-		return c.JSON(http.StatusInternalServerError, errService.Error())
+		return errors.ResponseError(c, errService)
 	}
 
 	return c.JSON(http.StatusOK, mapper.FromEntityToItemApi(item))
@@ -66,13 +71,13 @@ func (h *Item) CreateItem(c *echo.Context) error {
 // @Router /api/lists/items/{item_id} [get]
 func (h *Item) GetItem(c *echo.Context) error {
 	var itemApi api.GetItem
-	if err := c.Bind(itemApi); err != nil {
-		return c.JSON(http.StatusBadGateway, err.Error())
+	if err := c.Bind(&itemApi); err != nil {
+		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
 
 	item, errService := h.service.GetItem(c.Request().Context(), mapper.FromGetItemToEntity(&itemApi))
 	if errService != nil {
-		return c.JSON(http.StatusInternalServerError, errService.Error())
+		return errors.ResponseError(c, errService)
 	}
 
 	return c.JSON(http.StatusOK, mapper.FromEntityToItemApi(item))
@@ -91,13 +96,17 @@ func (h *Item) GetItem(c *echo.Context) error {
 // @Router /api/lists/items/{item_id} [put]
 func (h *Item) UpdateItem(c *echo.Context) error {
 	var itemApi api.UpdateItem
-	if err := c.Bind(itemApi); err != nil {
-		return c.JSON(http.StatusBadGateway, err.Error())
+	if err := c.Bind(&itemApi); err != nil {
+		return errors.ResponseError(c, errors.ErrBadRequest)
+	}
+
+	if err := h.validate.Struct(itemApi); err != nil {
+		return errors.ResponseError(c, errors.ErrValidation)
 	}
 
 	item, errService := h.service.UpdateItem(c.Request().Context(), mapper.FromUpdateItemToEntity(&itemApi))
 	if errService != nil {
-		return c.JSON(http.StatusInternalServerError, errService.Error)
+		return errors.ResponseError(c, errService)
 	}
 
 	return c.JSON(http.StatusOK, mapper.FromEntityToItemApi(item))
@@ -115,14 +124,16 @@ func (h *Item) UpdateItem(c *echo.Context) error {
 // @Router /api/lists/items/{item_id} [delete]
 func (h *Item) DeleteItem(c *echo.Context) error {
 	var itemApi api.DeleteItem
-	if err := c.Bind(itemApi); err != nil {
-		return c.JSON(http.StatusBadGateway, err.Error())
+	if err := c.Bind(&itemApi); err != nil {
+		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
 
 	errService := h.service.DeleteItem(c.Request().Context(), mapper.FromDeleteItemToEntity(&itemApi))
 	if errService != nil {
-		return c.JSON(http.StatusInternalServerError, errService.Error)
+		return errors.ResponseError(c, errService)
 	}
 
-	return c.JSON(http.StatusOK, fmt.Sprintf("Item %s deleted", itemApi.ItemId))
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"message": fmt.Sprintf("Item %s deleted", itemApi.ItemId),
+	})
 }
