@@ -34,7 +34,7 @@ type UpdateItem struct {
 	ItemId      uuid.UUID `param:"item_id"`
 	Title       string    `json:"title" validate:"optional"`
 	Description string    `json:"description" validate:"optional"`
-	Done        bool      `json:"done" validate:"optional"`
+	Done        *bool     `json:"done" validate:"optional"`
 }
 
 type DeleteItem struct {
