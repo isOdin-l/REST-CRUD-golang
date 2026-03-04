@@ -51,16 +51,19 @@ func FromGetItemToEntity(req *api.GetItem) *entities.Item {
 	}
 }
 
-func FromUpdateItemToEntity(req *api.UpdateItem) *entities.Item {
-	item := &entities.Item{
-		ItemId:      req.ItemId,
-		Title:       req.Title,
-		Description: req.Description,
+func FromUpdateItemToEntity(req *api.UpdateItem) *entities.UpdateItem {
+	return &entities.UpdateItem{
+		ItemId: req.ItemId,
+		OptValues: struct {
+			Title       *string
+			Description *string
+			Done        *bool
+		}{
+			Title:       req.Title,
+			Description: req.Description,
+			Done:        req.Done,
+		},
 	}
-	if req.Done != nil {
-		item.Done = *req.Done
-	}
-	return item
 }
 
 func FromDeleteItemToEntity(req *api.DeleteItem) *entities.Item {
@@ -100,12 +103,17 @@ func FromGetListToEntity(req *api.GetList) *entities.List {
 	}
 }
 
-func FromUpdateListToEntity(req *api.UpdateList) *entities.List {
-	return &entities.List{
-		UserId:      req.UserId,
-		ListId:      req.ListId,
-		Title:       req.Title,
-		Description: req.Description,
+func FromUpdateListToEntity(req *api.UpdateList) *entities.UpdateList {
+	return &entities.UpdateList{
+		UserId: req.UserId,
+		ListId: req.ListId,
+		OptValues: struct {
+			Title       *string
+			Description *string
+		}{
+			Title:       req.Title,
+			Description: req.Description,
+		},
 	}
 }
 

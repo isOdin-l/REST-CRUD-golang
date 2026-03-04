@@ -11,6 +11,7 @@ import (
 	"isOdin/RestApi/pkg/api"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
 )
 
@@ -18,7 +19,7 @@ type ListServiceInterface interface {
 	CreateList(ctx context.Context, list *entities.List) (*entities.List, *errors.AppError)
 	GetListById(ctx context.Context, list *entities.List) (*entities.List, *errors.AppError)
 	DeleteList(ctx context.Context, list *entities.List) *errors.AppError
-	UpdateList(ctx context.Context, list *entities.List) (*entities.List, *errors.AppError)
+	UpdateList(ctx context.Context, list *entities.UpdateList) (*entities.List, *errors.AppError)
 }
 
 type List struct {
@@ -45,6 +46,7 @@ func (h *List) CreateList(c *echo.Context) error {
 	if err := c.Bind(&listApi); err != nil {
 		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
+	listApi.UserId = c.Get("userId").(uuid.UUID)
 
 	if err := h.validate.Struct(listApi); err != nil {
 		return errors.ResponseError(c, errors.ErrBadRequest)
@@ -98,6 +100,7 @@ func (h *List) UpdateList(c *echo.Context) error {
 	if err := c.Bind(&listApi); err != nil {
 		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
+	listApi.UserId = c.Get("userId").(uuid.UUID)
 
 	if err := h.validate.Struct(listApi); err != nil {
 		return errors.ResponseError(c, errors.ErrValidation)

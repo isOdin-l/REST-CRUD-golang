@@ -44,20 +44,16 @@ func (s *TodoItemService) DeleteItem(ctx context.Context, item *entities.Item) *
 	return s.repo.DeleteItem(ctx, item.ItemId)
 }
 
-func (s *TodoItemService) UpdateItem(ctx context.Context, item *entities.Item) (*entities.Item, *errors.AppError) {
+func (s *TodoItemService) UpdateItem(ctx context.Context, item *entities.UpdateItem) (*entities.Item, *errors.AppError) {
 	updateInfo := make(map[string]interface{})
-	v := reflect.ValueOf(*item)
-	t := reflect.TypeOf(*item)
+	k := reflect.TypeOf(item.OptValues)
+	v := reflect.ValueOf(item.OptValues)
 
 	for i := 0; i < v.NumField(); i++ {
-		fieldName := t.Field(i).Name
+		fieldName := k.Field(i).Name
 		fieldValue := v.Field(i)
 
-		if fieldName == "ListId" || fieldName == "ItemId" {
-			continue
-		}
-
-		if !fieldValue.IsZero() {
+		if !fieldValue.IsNil() {
 			dbColumnName := strings.ToLower(fieldName)
 			updateInfo[dbColumnName] = fieldValue.Interface()
 		}

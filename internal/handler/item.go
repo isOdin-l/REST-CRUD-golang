@@ -18,7 +18,7 @@ type ItemServiceInterface interface {
 	CreateItem(ctx context.Context, item *entities.Item) (*entities.Item, *errors.AppError)
 	GetItem(ctx context.Context, item *entities.Item) (*entities.Item, *errors.AppError)
 	DeleteItem(ctx context.Context, item *entities.Item) *errors.AppError
-	UpdateItem(ctx context.Context, item *entities.Item) (*entities.Item, *errors.AppError)
+	UpdateItem(ctx context.Context, item *entities.UpdateItem) (*entities.Item, *errors.AppError)
 }
 
 type Item struct {

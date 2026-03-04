@@ -2,14 +2,15 @@ package middleware
 
 import (
 	"context"
-	"net/http"
 	"strings"
 
 	"isOdin/RestApi/configs"
+	"isOdin/RestApi/internal/errors"
 	"isOdin/RestApi/internal/middleware/dto"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v5"
 )
 
 type AuthMiddleware struct {
@@ -20,35 +21,30 @@ func NewAuthMiddleware(cfg *configs.InternalConfig) *AuthMiddleware {
 	return &AuthMiddleware{cfg: cfg}
 }
 
-func (md *AuthMiddleware) JWTAuth(next http.Handler) http.Handler {
-	return http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			// Получаем токен из заголовка Authorization
-			authHeader := r.Header.Get("Authorization")
+func (md *AuthMiddleware) JWTAuth() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c *echo.Context) error {
+			authHeader := c.Request().Header.Get("Authorization")
 			if authHeader == "" {
-				http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
-				return
+				return errors.ResponseError(c, errors.ErrUnauthorized)
 			}
 
-			// Проверяем формат: "Bearer <token>"
 			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 			if tokenString == authHeader {
-				http.Error(w, "Invalid Authorization header format", http.StatusUnauthorized)
-				return
+				return errors.ResponseError(c, errors.ErrUnauthorized)
 			}
 
-			// Парсим токен
 			userId, err := md.parseJWTtoken(tokenString)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusUnauthorized)
-				return
+				return errors.ResponseError(c, errors.ErrUnauthorized)
 			}
 
-			// Записываем в контекст, чтобы другие хэндлеры/мидлвейры могли работать с данными
-			r = r.WithContext(context.WithValue(r.Context(), "userId", userId))
-			next.ServeHTTP(w, r)
-		},
-	)
+			// Созхранение userId в контекст
+			c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), "userId", userId)))
+
+			return next(c)
+		}
+	}
 }
 
 func (md *AuthMiddleware) parseJWTtoken(accessToken string) (uuid.UUID, error) {
