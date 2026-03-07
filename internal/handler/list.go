@@ -46,13 +46,15 @@ func (h *List) CreateList(c *echo.Context) error {
 	if err := c.Bind(&listApi); err != nil {
 		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
-	listApi.UserId = c.Get("userId").(uuid.UUID)
 
 	if err := h.validate.Struct(listApi); err != nil {
 		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
 
-	list, errService := h.service.CreateList(c.Request().Context(), mapper.FromCreateListToEntity(&listApi))
+	listEntity := mapper.FromCreateListToEntity(&listApi)
+	listEntity.UserId = c.Get("userId").(uuid.UUID)
+
+	list, errService := h.service.CreateList(c.Request().Context(), listEntity)
 	if errService != nil {
 		return errors.ResponseError(c, errService)
 	}
@@ -100,13 +102,15 @@ func (h *List) UpdateList(c *echo.Context) error {
 	if err := c.Bind(&listApi); err != nil {
 		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
-	listApi.UserId = c.Get("userId").(uuid.UUID)
 
 	if err := h.validate.Struct(listApi); err != nil {
 		return errors.ResponseError(c, errors.ErrValidation)
 	}
 
-	list, errService := h.service.UpdateList(c.Request().Context(), mapper.FromUpdateListToEntity(&listApi))
+	listEntity := mapper.FromUpdateListToEntity(&listApi)
+	listEntity.UserId = c.Get("userId").(uuid.UUID)
+
+	list, errService := h.service.UpdateList(c.Request().Context(), listEntity)
 	if errService != nil {
 		return errors.ResponseError(c, errService)
 	}
