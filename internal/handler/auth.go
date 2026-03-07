@@ -72,13 +72,15 @@ func (h *Auth) SignInHandler(c *echo.Context) error {
 	if err := c.Bind(&userApi); err != nil {
 		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
-	userApi.UserId = c.Get("userId").(uuid.UUID)
 
 	if err := h.validate.Struct(userApi); err != nil {
 		return errors.ResponseError(c, errors.ErrValidation)
 	}
 
-	generatedToken, errService := h.service.GenerateToken(c.Request().Context(), mapper.FromSignInApiToEntity(&userApi))
+	userEntity := mapper.FromSignInApiToEntity(&userApi)
+	userEntity.UserId = c.Get("userId").(uuid.UUID)
+
+	generatedToken, errService := h.service.GenerateToken(c.Request().Context(), userEntity)
 	if errService != nil {
 		return errors.ResponseError(c, errService)
 	}
