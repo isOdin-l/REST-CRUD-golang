@@ -48,6 +48,7 @@ func (r *ListRepository) GetList(ctx context.Context, listId uuid.UUID) (*entiti
 	}
 
 	list := &models.List{}
+
 	if err := r.db.QueryRow(ctx, list, query, value...); err != nil {
 		if err.Error() == "no rows in result set" {
 			return nil, errors.ErrNotFound
@@ -78,6 +79,7 @@ func (r *ListRepository) UpdateList(ctx context.Context, listId uuid.UUID, updat
 	}
 
 	list := &models.List{}
+
 	if err := r.db.QueryRow(ctx, list, query, value...); err != nil {
 		if err.Error() == "no rows in result set" {
 			return nil, errors.ErrNotFound

@@ -20,10 +20,11 @@ type ListRepoInterface interface {
 
 type TodoListService struct {
 	repo ListRepoInterface
+	txMn ITransactionManager
 }
 
-func NewTodoListService(repo ListRepoInterface) *TodoListService {
-	return &TodoListService{repo: repo}
+func NewTodoListService(repo ListRepoInterface, txMn ITransactionManager) *TodoListService {
+	return &TodoListService{repo: repo, txMn: txMn}
 }
 
 func (s *TodoListService) CreateList(ctx context.Context, list *entities.List) (*entities.List, *errors.AppError) {

@@ -49,14 +49,14 @@ func main() {
 	}
 	defer DB.Close()
 
-	repository := repository.NewRepository(DB, sqlbuilder.NewSqlBuilder()) //----- Repository -----
-	service := service.NewService(&cfg.InternalConfig, repository)         // ----- Service -----
-	validate := validator.New(validator.WithRequiredStructEnabled())       // ----- Validator -----
-	middleware := middleware.NewMiddleware(&cfg.InternalConfig)            // ----- Middleware -----
-	handler := handler.NewHandler(validate, service)                       // ----- Handler -----
-	server.NewRouter(router, middleware, handler)                          // ----- Routing -----
+	repository := repository.NewRepository(DB, sqlbuilder.NewSqlBuilder()) //  Repository
+	service := service.NewService(&cfg.InternalConfig, repository, DB)     //  Service
 
-	// Server start
+	validate := validator.New(validator.WithRequiredStructEnabled()) //  Validator
+	middleware := middleware.NewMiddleware(&cfg.InternalConfig)      //  Middleware
+	handler := handler.NewHandler(validate, service)                 //  Handler
+
+	server.NewRouter(router, middleware, handler) //  Routing
 	if err := server.RunServer(router, &ctx, ":8000"); err != nil {
 		router.Logger.Error(fmt.Sprintf("Error while running server %s", err.Error()))
 	}

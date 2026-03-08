@@ -4,9 +4,17 @@ import (
 	"context"
 
 	"isOdin/RestApi/configs"
+	"isOdin/RestApi/internal/database"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+type IPostgresExecutor interface {
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
 
 type PostgresDB struct {
 	conn *pgxpool.Pool
@@ -26,14 +34,42 @@ func NewPostgresDB(cfg *configs.Config) (*PostgresDB, error) {
 }
 
 func (ps *PostgresDB) Exec(ctx context.Context, sql string, values ...interface{}) error {
-	_, err := ps.conn.Exec(ctx, sql, values...)
+	_, err := ps.getExecutor(ctx).Exec(ctx, sql, values...)
 	return err
 }
 
 func (ps *PostgresDB) QueryRow(ctx context.Context, recieveObject interface{}, sql string, values ...interface{}) error {
-	return ps.conn.QueryRow(ctx, sql, values...).Scan(&recieveObject)
+	return ps.getExecutor(ctx).QueryRow(ctx, sql, values...).Scan(recieveObject)
 }
 
 func (ps *PostgresDB) Close() {
 	ps.conn.Close()
+}
+
+func (ps *PostgresDB) getExecutor(ctx context.Context) IPostgresExecutor {
+	tx, ok := ctx.Value(database.TXKEY{}).(pgx.Tx)
+	if !ok {
+		return ps.conn
+	}
+	return tx
+}
+
+func (ps *PostgresDB) WithinTx(ctx context.Context, fn func(ctx context.Context) (*any, error)) (*any, error) {
+	if _, ok := ctx.Value(database.TXKEY{}).(pgx.Tx); ok {
+		return fn(ctx)
+	}
+
+	tx, errTx := ps.conn.BeginTx(ctx, pgx.TxOptions{})
+	if errTx != nil {
+		return nil, errTx
+	}
+
+	defer tx.Rollback(ctx)
+	res, errFn := fn(ctx)
+	if errFn != nil {
+		return nil, errFn
+	}
+
+	return res, tx.Commit(ctx)
+
 }
