@@ -20,10 +20,11 @@ type ItemRepoInterface interface {
 
 type TodoItemService struct {
 	repo ItemRepoInterface
+	txMn ITransactionManager
 }
 
-func NewTodoItemService(repo ItemRepoInterface) *TodoItemService {
-	return &TodoItemService{repo: repo}
+func NewTodoItemService(repo ItemRepoInterface, txMn ITransactionManager) *TodoItemService {
+	return &TodoItemService{repo: repo, txMn: txMn}
 }
 
 func (s *TodoItemService) CreateItem(ctx context.Context, item *entities.Item) (*entities.Item, *errors.AppError) {

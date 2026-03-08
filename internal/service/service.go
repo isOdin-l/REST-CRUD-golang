@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"isOdin/RestApi/configs"
 )
 
@@ -16,10 +17,14 @@ type RepositoryInterface interface {
 	ItemRepoInterface
 }
 
-func NewService(cfg *configs.InternalConfig, repo RepositoryInterface) *Service {
+type ITransactionManager interface {
+	WithinTx(ctx context.Context, fn func(context.Context) (*any, error)) (*any, error)
+}
+
+func NewService(cfg *configs.InternalConfig, repo RepositoryInterface, txMn ITransactionManager) *Service {
 	return &Service{
-		AuthService:     NewAuthService(cfg, repo),
-		TodoListService: NewTodoListService(repo),
-		TodoItemService: NewTodoItemService(repo),
+		AuthService:     NewAuthService(cfg, repo, txMn),
+		TodoListService: NewTodoListService(repo, txMn),
+		TodoItemService: NewTodoItemService(repo, txMn),
 	}
 }

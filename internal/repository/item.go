@@ -48,6 +48,7 @@ func (r *ItemRepository) GetItem(ctx context.Context, itemId uuid.UUID) (*entiti
 	}
 
 	item := &models.Item{}
+
 	if errQuery := r.db.QueryRow(ctx, item, query, value...); errQuery != nil {
 		if errQuery.Error() == "no rows in result set" {
 			return nil, errors.ErrNotFound
@@ -77,6 +78,7 @@ func (r *ItemRepository) UpdateItem(ctx context.Context, itemId uuid.UUID, updat
 	}
 
 	item := &models.Item{}
+
 	if errDbQuery := r.db.QueryRow(ctx, item, query, values...); errDbQuery != nil {
 		if errDbQuery.Error() == "no rows in result set" {
 			return nil, errors.ErrNotFound

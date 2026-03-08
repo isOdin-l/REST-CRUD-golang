@@ -23,10 +23,11 @@ type AuthRepoInterface interface {
 type AuthService struct {
 	repo AuthRepoInterface
 	cfg  *configs.InternalConfig
+	txMn ITransactionManager
 }
 
-func NewAuthService(cfg *configs.InternalConfig, repo AuthRepoInterface) *AuthService {
-	return &AuthService{cfg: cfg, repo: repo}
+func NewAuthService(cfg *configs.InternalConfig, repo AuthRepoInterface, txMn ITransactionManager) *AuthService {
+	return &AuthService{cfg: cfg, repo: repo, txMn: txMn}
 }
 
 func (s *AuthService) CreateUser(ctx context.Context, user *entities.User) (uuid.UUID, *errors.AppError) {
