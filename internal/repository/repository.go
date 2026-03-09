@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type Repository struct {
@@ -18,7 +20,8 @@ type ISql interface {
 
 type IDatabase interface {
 	Exec(ctx context.Context, sql string, args ...interface{}) error
-	QueryRow(ctx context.Context, recieveObject interface{}, sql string, args ...interface{}) error
+	QueryRow(ctx context.Context, sql string, args ...interface{}) pgx.Row
+	Scan(row pgx.Row, dest ...any) error
 	Close()
 }
 

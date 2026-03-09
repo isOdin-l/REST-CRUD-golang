@@ -1,6 +1,6 @@
 module isOdin/RestApi
 
-go 1.25.4
+go 1.26.0
 
 require (
 	github.com/Masterminds/squirrel v1.5.4
@@ -8,7 +8,7 @@ require (
 	github.com/go-playground/validator/v10 v10.28.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.7.6
+	github.com/jackc/pgx/v5 v5.8.0
 	github.com/labstack/echo/v5 v5.0.4
 	github.com/swaggo/swag v1.16.6
 )

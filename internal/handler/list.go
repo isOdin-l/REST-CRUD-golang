@@ -76,10 +76,12 @@ func (h *List) CreateList(c *echo.Context) error {
 func (h *List) GetList(c *echo.Context) error {
 	var listApi api.GetList
 	if err := c.Bind(&listApi); err != nil {
+		c.Logger().Info(err.Error())
 		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
 
 	if err := h.validate.Struct(listApi); err != nil {
+		c.Logger().Info(err.Error())
 		return errors.ResponseError(c, errors.ErrValidation)
 	}
 
@@ -88,6 +90,7 @@ func (h *List) GetList(c *echo.Context) error {
 
 	list, errService := h.service.GetListById(c.Request().Context(), listEntity)
 	if errService != nil {
+		c.Logger().Info(errService.Error())
 		return errors.ResponseError(c, errService)
 	}
 
@@ -108,10 +111,12 @@ func (h *List) GetList(c *echo.Context) error {
 func (h *List) UpdateList(c *echo.Context) error {
 	var listApi api.UpdateList
 	if err := c.Bind(&listApi); err != nil {
+		c.Logger().Info(err.Error())
 		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
 
 	if err := h.validate.Struct(listApi); err != nil {
+		c.Logger().Info(err.Error())
 		return errors.ResponseError(c, errors.ErrValidation)
 	}
 
@@ -120,6 +125,7 @@ func (h *List) UpdateList(c *echo.Context) error {
 
 	list, errService := h.service.UpdateList(c.Request().Context(), listEntity)
 	if errService != nil {
+		c.Logger().Info(errService.Error())
 		return errors.ResponseError(c, errService)
 	}
 
@@ -139,10 +145,12 @@ func (h *List) UpdateList(c *echo.Context) error {
 func (h *List) DeleteList(c *echo.Context) error {
 	var listApi api.DeleteList
 	if err := c.Bind(&listApi); err != nil {
+		c.Logger().Info(err.Error())
 		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
 
 	if err := h.validate.Struct(listApi); err != nil {
+		c.Logger().Info(err.Error())
 		return errors.ResponseError(c, errors.ErrValidation)
 	}
 
@@ -151,6 +159,7 @@ func (h *List) DeleteList(c *echo.Context) error {
 
 	errService := h.service.DeleteList(c.Request().Context(), listEntity)
 	if errService != nil {
+		c.Logger().Info(errService.Error())
 		return errors.ResponseError(c, errService)
 	}
 

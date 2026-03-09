@@ -47,32 +47,32 @@ func (s *TodoListService) DeleteList(ctx context.Context, list *entities.List) *
 }
 
 func (s *TodoListService) UpdateList(ctx context.Context, list *entities.UpdateList) (*entities.List, *errors.AppError) {
+	updateInfo := s.updateInfoMap(list.OptValues)
+	
+	if len(updateInfo) == 0 {
+		return s.repo.GetList(ctx, &entities.List{
+			UserId:      list.UserId,
+			ListId:      list.ListId,
+		})
+	}
+
+	return s.repo.UpdateList(ctx, list, updateInfo)
+}
+
+func (s *TodoListService) updateInfoMap(updateObject any) map[string]any{
 	updateInfo := make(map[string]interface{})
-	k := reflect.TypeOf(*list)
-	v := reflect.ValueOf(*list)
+	k := reflect.TypeOf(updateObject)
+	v := reflect.ValueOf(updateObject)
 
 	for i := 0; i < v.NumField(); i++ {
 		fieldName := k.Field(i).Name
 		fieldValue := v.Field(i)
 
-		if fieldName == "UserId" || fieldName == "ListId" {
-			continue
-		}
-
 		if !fieldValue.IsNil() {
 			dbColumnName := strings.ToLower(fieldName)
-			updateInfo[dbColumnName] = fieldValue.Interface()
+			updateInfo[dbColumnName] = fieldValue.Elem().Interface()
 		}
 	}
 
-	if len(updateInfo) == 0 {
-		return s.repo.GetList(ctx, &entities.List{
-			UserId:      list.UserId,
-			ListId:      list.ListId,
-			Title:       *list.OptValues.Title,
-			Description: *list.OptValues.Description,
-		})
-	}
-
-	return s.repo.UpdateList(ctx, list, updateInfo)
+	return updateInfo
 }

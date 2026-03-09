@@ -63,9 +63,7 @@ func FromListEntityToRepo(req *entities.List) *List {
 func FromUpdateListEntityToRepo(req *entities.UpdateList) *List {
 	return &List{
 		Id:          req.ListId,
-		Author_id:   req.UserId,
-		Title:       *req.OptValues.Title,
-		Description: *req.OptValues.Description,
+		Author_id:   req.UserId,	
 	}
 }
 
@@ -73,9 +71,6 @@ func FromUpdateItemEntityToRepo(req *entities.UpdateItem) *Item {
 	return &Item{
 		Id:          req.ItemId,
 		List_id:     req.ListId,
-		Title:       *req.OptValues.Title,
-		Description: *req.OptValues.Description,
-		Done:        *req.OptValues.Done,
 	}
 
 }

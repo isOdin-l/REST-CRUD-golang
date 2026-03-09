@@ -17,7 +17,7 @@ import (
 
 type AuthRepoInterface interface {
 	CreateUser(ctx context.Context, user *entities.User) *errors.AppError
-	GetUser(ctx context.Context, userId uuid.UUID) (*entities.User, *errors.AppError)
+	GetUser(ctx context.Context, user *entities.User) (*entities.User, *errors.AppError)
 }
 
 type AuthService struct {
@@ -30,39 +30,32 @@ func NewAuthService(cfg *configs.InternalConfig, repo AuthRepoInterface, txMn IT
 	return &AuthService{cfg: cfg, repo: repo, txMn: txMn}
 }
 
-func (s *AuthService) CreateUser(ctx context.Context, user *entities.User) (uuid.UUID, *errors.AppError) {
+func (s *AuthService) CreateUser(ctx context.Context, user *entities.User) (string, *errors.AppError) {
 	var err error
 	user.UserId, err = uuid.NewV7()
 	if err != nil {
-		return uuid.Nil, errors.NewInternalError(err)
+		return "", errors.NewInternalError(err)
 	}
 	user.Password = s.generatePasswordHash(user.Password)
 
-	errRepo := s.repo.CreateUser(ctx, user)
-	return user.UserId, errRepo
+	errCreate := s.repo.CreateUser(ctx, user)
+	if errCreate != nil{
+		return "", errCreate
+	}
+	
+	return s.signJwtToken(user.UserId)
 }
 
-func (s *AuthService) GenerateToken(ctx context.Context, user *entities.User) (string, *errors.AppError) {
+
+func (s *AuthService) LogInUser(ctx context.Context, user *entities.User) (string, *errors.AppError) {
 	user.Password = s.generatePasswordHash(user.Password)
 
-	userFromDB, errRepo := s.repo.GetUser(ctx, user.UserId)
+	userFromDB, errRepo := s.repo.GetUser(ctx, user)
 	if errRepo != nil {
 		return "", errRepo
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwtToken.TokenClaims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.cfg.TOKEN_TTL)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-		},
-		UserId: userFromDB.UserId,
-	})
-
-	tokenString, errJwt := token.SignedString([]byte(s.cfg.JWT_SIGNING_KEY))
-	if errJwt != nil {
-		return "", errors.NewInternalError(errJwt)
-	}
-	return tokenString, nil
+	return s.signJwtToken(userFromDB.UserId)
 }
 
 func (s *AuthService) generatePasswordHash(password string) string {
@@ -70,4 +63,21 @@ func (s *AuthService) generatePasswordHash(password string) string {
 	hash.Write([]byte(password))
 
 	return fmt.Sprintf("%x", hash.Sum([]byte(s.cfg.SALT)))
+}
+
+func (s *AuthService) signJwtToken(userId uuid.UUID) (string, *errors.AppError){
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &jwtToken.TokenClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.cfg.TOKEN_TTL)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+		UserId: userId,
+	})
+
+	tokenString, errJwt := token.SignedString([]byte(s.cfg.JWT_SIGNING_KEY))
+	if errJwt != nil {
+		return "", errors.NewInternalError(errJwt)
+	}
+
+	return tokenString, nil
 }

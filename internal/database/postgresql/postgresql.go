@@ -38,8 +38,12 @@ func (ps *PostgresDB) Exec(ctx context.Context, sql string, values ...interface{
 	return err
 }
 
-func (ps *PostgresDB) QueryRow(ctx context.Context, recieveObject interface{}, sql string, values ...interface{}) error {
-	return ps.getExecutor(ctx).QueryRow(ctx, sql, values...).Scan(recieveObject)
+func (ps *PostgresDB) QueryRow(ctx context.Context, sql string, values ...interface{}) pgx.Row {
+	return ps.getExecutor(ctx).QueryRow(ctx, sql, values...)
+}
+
+func (ps *PostgresDB) Scan(row pgx.Row, dest ...any) error{
+	return row.Scan(dest...)
 }
 
 func (ps *PostgresDB) Close() {

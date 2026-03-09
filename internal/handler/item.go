@@ -46,10 +46,12 @@ func NewItemHandler(validate *validator.Validate, service ItemServiceInterface) 
 func (h *Item) CreateItem(c *echo.Context) error {
 	var itemApi api.CreateItem
 	if err := c.Bind(&itemApi); err != nil {
+		c.Logger().Info(err.Error())
 		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
 
 	if err := h.validate.Struct(itemApi); err != nil {
+		c.Logger().Info(err.Error())
 		return errors.ResponseError(c, errors.ErrValidation)
 	}
 
@@ -58,6 +60,7 @@ func (h *Item) CreateItem(c *echo.Context) error {
 
 	item, errService := h.service.CreateItem(c.Request().Context(), itemEntity)
 	if errService != nil {
+		c.Logger().Info(errService.Error())
 		return errors.ResponseError(c, errService)
 	}
 
@@ -77,6 +80,7 @@ func (h *Item) CreateItem(c *echo.Context) error {
 func (h *Item) GetItem(c *echo.Context) error {
 	var itemApi api.GetItem
 	if err := c.Bind(&itemApi); err != nil {
+		c.Logger().Info(err.Error())
 		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
 
@@ -85,6 +89,7 @@ func (h *Item) GetItem(c *echo.Context) error {
 
 	item, errService := h.service.GetItem(c.Request().Context(), itemEntity)
 	if errService != nil {
+		c.Logger().Info(errService.Error())
 		return errors.ResponseError(c, errService)
 	}
 
@@ -105,10 +110,12 @@ func (h *Item) GetItem(c *echo.Context) error {
 func (h *Item) UpdateItem(c *echo.Context) error {
 	var itemApi api.UpdateItem
 	if err := c.Bind(&itemApi); err != nil {
+		c.Logger().Info(err.Error())
 		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
 
 	if err := h.validate.Struct(itemApi); err != nil {
+		c.Logger().Info(err.Error())
 		return errors.ResponseError(c, errors.ErrValidation)
 	}
 
@@ -117,6 +124,7 @@ func (h *Item) UpdateItem(c *echo.Context) error {
 
 	item, errService := h.service.UpdateItem(c.Request().Context(), itemEntity)
 	if errService != nil {
+		c.Logger().Info(errService.Error())
 		return errors.ResponseError(c, errService)
 	}
 
@@ -136,6 +144,7 @@ func (h *Item) UpdateItem(c *echo.Context) error {
 func (h *Item) DeleteItem(c *echo.Context) error {
 	var itemApi api.DeleteItem
 	if err := c.Bind(&itemApi); err != nil {
+		c.Logger().Info(err.Error())
 		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
 
@@ -144,6 +153,7 @@ func (h *Item) DeleteItem(c *echo.Context) error {
 
 	errService := h.service.DeleteItem(c.Request().Context(), itemEntity)
 	if errService != nil {
+		c.Logger().Info(errService.Error())
 		return errors.ResponseError(c, errService)
 	}
 

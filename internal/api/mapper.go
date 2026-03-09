@@ -102,15 +102,6 @@ func FromDeleteListToEntity(req *api.DeleteList) *entities.List {
 // =======================
 
 // -------- USER ---------
-func FromEntityToSignUpApi(req *entities.User) *api.ResponseSignUp {
-	return &api.ResponseSignUp{
-		User: struct {
-			UserId uuid.UUID "json:\"id\""
-		}{
-			UserId: req.UserId,
-		},
-	}
-}
 
 // -------- LIST ---------
 func FromEntityToListApi(req *entities.List) *api.ResponseList {

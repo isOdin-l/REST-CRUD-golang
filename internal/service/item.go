@@ -46,9 +46,22 @@ func (s *TodoItemService) DeleteItem(ctx context.Context, item *entities.Item) *
 }
 
 func (s *TodoItemService) UpdateItem(ctx context.Context, item *entities.UpdateItem) (*entities.Item, *errors.AppError) {
+	updateInfo := s.updateInfoMap(item.OptValues)
+
+	if len(updateInfo) == 0 {
+		return s.repo.GetItem(ctx, &entities.Item{
+			UserId:      item.UserId,
+			ItemId:      item.ItemId,
+		})
+	}
+
+	return s.repo.UpdateItem(ctx, item, updateInfo)
+}
+
+func (s *TodoItemService) updateInfoMap(updateObject any) map[string]any{
 	updateInfo := make(map[string]interface{})
-	k := reflect.TypeOf(item.OptValues)
-	v := reflect.ValueOf(item.OptValues)
+	k := reflect.TypeOf(updateObject)
+	v := reflect.ValueOf(updateObject)
 
 	for i := 0; i < v.NumField(); i++ {
 		fieldName := k.Field(i).Name
@@ -56,20 +69,9 @@ func (s *TodoItemService) UpdateItem(ctx context.Context, item *entities.UpdateI
 
 		if !fieldValue.IsNil() {
 			dbColumnName := strings.ToLower(fieldName)
-			updateInfo[dbColumnName] = fieldValue.Interface()
+			updateInfo[dbColumnName] = fieldValue.Elem().Interface()
 		}
 	}
 
-	if len(updateInfo) == 0 {
-		return s.repo.GetItem(ctx, &entities.Item{
-			UserId:      item.UserId,
-			ListId:      item.ListId,
-			ItemId:      item.ItemId,
-			Title:       *item.OptValues.Title,
-			Description: *item.OptValues.Description,
-			Done:        *item.OptValues.Done,
-		})
-	}
-
-	return s.repo.UpdateItem(ctx, item, updateInfo)
+	return updateInfo
 }

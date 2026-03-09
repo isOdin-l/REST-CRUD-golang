@@ -45,12 +45,12 @@ func NewRouter(e *echo.Echo, md MiddlewareInterface, h HandlerInterface) {
 
 	list.POST("/", h.CreateList)
 	list.GET("/:list_id", h.GetList)
-	list.PUT("/:list_id", h.UpdateList)
+	list.PATCH("/:list_id", h.UpdateList)
 	list.DELETE("/:list_id", h.DeleteList)
 
 	item := list.Group("/:list_id/item")
 	item.POST("/", h.CreateItem)
 	item.GET("/:item_id", h.GetItem)
-	item.PUT("/:item_id", h.UpdateItem)
+	item.PATCH("/:item_id", h.UpdateItem)
 	item.DELETE("/:item_id", h.DeleteItem)
 }
