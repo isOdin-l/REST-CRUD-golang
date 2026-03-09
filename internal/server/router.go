@@ -34,7 +34,7 @@ func NewRouter(e *echo.Echo, md MiddlewareInterface, h HandlerInterface) {
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
 
-	api := e.Group("/api/v0")
+	api := e.Group("/api/v1")
 
 	auth := api.Group("/auth")
 	auth.POST("/sign-in", h.SignInHandler)

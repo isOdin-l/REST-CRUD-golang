@@ -32,7 +32,7 @@ func NewAuthHandler(validate *validator.Validate, service AuthServiceInterface) 
 // @ID create-account
 // @Accept  json
 // @Produce  json
-// @Param input body apidto.SignUpAPI true "account info"
+// @Param input body api.SignUpAPI true "account info"
 // @Success 200 {string} string
 // @Failure default {string} string
 // @Router /auth/sign-up [post]
@@ -59,7 +59,7 @@ func (h *Auth) SignUpHandler(c *echo.Context) error {
 // @ID log-into-account
 // @Accept  json
 // @Produce  json
-// @Param input body apidto.SignInAPI true "account info"
+// @Param input body api.SignInAPI true "account info"
 // @Success 200 {string} string
 // @Failure default {string} string
 // @Router /auth/sign-in [post]
