@@ -9,7 +9,7 @@ CREATE TABLE users
 CREATE TABLE lists
 (
     id UUID PRIMARY KEY,
-    author_id UUID FOREIGN KEY REFERENCES users(id) ON DELETE CASCADE,
+    author_id UUID REFERENCES users(id) ON DELETE CASCADE,
     title varchar(128) NOT NULL,
     description TEXT
 );
@@ -17,7 +17,7 @@ CREATE TABLE lists
 CREATE TABLE items
 (
     id UUID PRIMARY KEY,
-    list_id FOREIGN KEY REFERENCES lists(id) ON DELETE CASCADE,
+    list_id REFERENCES lists(id) ON DELETE CASCADE,
     title VARCHAR(128) NOT NULL,
     description TEXT,
     done BOOLEAN NOT NULL DEFAULT false

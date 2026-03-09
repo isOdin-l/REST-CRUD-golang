@@ -13,9 +13,9 @@ import (
 
 type ListRepoInterface interface {
 	CreateList(ctx context.Context, list *entities.List) *errors.AppError
-	GetList(ctx context.Context, listId uuid.UUID) (*entities.List, *errors.AppError)
-	UpdateList(ctx context.Context, listId uuid.UUID, updateInfo map[string]interface{}) (*entities.List, *errors.AppError)
-	DeleteList(ctx context.Context, listId uuid.UUID) *errors.AppError
+	GetList(ctx context.Context, list *entities.List) (*entities.List, *errors.AppError)
+	UpdateList(ctx context.Context, list *entities.UpdateList, updateInfo map[string]interface{}) (*entities.List, *errors.AppError)
+	DeleteList(ctx context.Context, list *entities.List) *errors.AppError
 }
 
 type TodoListService struct {
@@ -39,11 +39,11 @@ func (s *TodoListService) CreateList(ctx context.Context, list *entities.List) (
 }
 
 func (s *TodoListService) GetListById(ctx context.Context, list *entities.List) (*entities.List, *errors.AppError) {
-	return s.repo.GetList(ctx, list.ListId)
+	return s.repo.GetList(ctx, list)
 }
 
 func (s *TodoListService) DeleteList(ctx context.Context, list *entities.List) *errors.AppError {
-	return s.repo.DeleteList(ctx, list.ListId)
+	return s.repo.DeleteList(ctx, list)
 }
 
 func (s *TodoListService) UpdateList(ctx context.Context, list *entities.UpdateList) (*entities.List, *errors.AppError) {
@@ -66,8 +66,13 @@ func (s *TodoListService) UpdateList(ctx context.Context, list *entities.UpdateL
 	}
 
 	if len(updateInfo) == 0 {
-		return s.repo.GetList(ctx, list.ListId)
+		return s.repo.GetList(ctx, &entities.List{
+			UserId:      list.UserId,
+			ListId:      list.ListId,
+			Title:       *list.OptValues.Title,
+			Description: *list.OptValues.Description,
+		})
 	}
 
-	return s.repo.UpdateList(ctx, list.ListId, updateInfo)
+	return s.repo.UpdateList(ctx, list, updateInfo)
 }

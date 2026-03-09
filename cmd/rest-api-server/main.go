@@ -57,7 +57,7 @@ func main() {
 	handler := handler.NewHandler(validate, service)                 //  Handler
 
 	server.NewRouter(router, middleware, handler) //  Routing
-	if err := server.RunServer(router, &ctx, ":8000"); err != nil {
+	if err := server.RunServer(router, &ctx, fmt.Sprintf(":%s", cfg.SERVER_PORT)); err != nil {
 		router.Logger.Error(fmt.Sprintf("Error while running server %s", err.Error()))
 	}
 }

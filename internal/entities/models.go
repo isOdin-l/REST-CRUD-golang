@@ -26,6 +26,7 @@ type UpdateList struct {
 }
 
 type Item struct {
+	UserId      uuid.UUID
 	ListId      uuid.UUID
 	ItemId      uuid.UUID
 	Title       string
@@ -34,6 +35,7 @@ type Item struct {
 }
 
 type UpdateItem struct {
+	UserId    uuid.UUID
 	ListId    uuid.UUID
 	ItemId    uuid.UUID
 	OptValues struct {

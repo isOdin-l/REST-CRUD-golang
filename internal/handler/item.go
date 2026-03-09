@@ -8,9 +8,11 @@ import (
 	mapper "isOdin/RestApi/internal/api"
 	"isOdin/RestApi/internal/entities"
 	"isOdin/RestApi/internal/errors"
+	"isOdin/RestApi/internal/helpers"
 	"isOdin/RestApi/pkg/api"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
 )
 
@@ -51,7 +53,10 @@ func (h *Item) CreateItem(c *echo.Context) error {
 		return errors.ResponseError(c, errors.ErrValidation)
 	}
 
-	item, errService := h.service.CreateItem(c.Request().Context(), mapper.FromCreateItemToEntity(&itemApi))
+	itemEntity := mapper.FromCreateItemToEntity(&itemApi)
+	itemEntity.UserId = c.Get(helpers.CtxUserId).(uuid.UUID)
+
+	item, errService := h.service.CreateItem(c.Request().Context(), itemEntity)
 	if errService != nil {
 		return errors.ResponseError(c, errService)
 	}
@@ -75,7 +80,10 @@ func (h *Item) GetItem(c *echo.Context) error {
 		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
 
-	item, errService := h.service.GetItem(c.Request().Context(), mapper.FromGetItemToEntity(&itemApi))
+	itemEntity := mapper.FromGetItemToEntity(&itemApi)
+	itemEntity.UserId = c.Get(helpers.CtxUserId).(uuid.UUID)
+
+	item, errService := h.service.GetItem(c.Request().Context(), itemEntity)
 	if errService != nil {
 		return errors.ResponseError(c, errService)
 	}
@@ -104,7 +112,10 @@ func (h *Item) UpdateItem(c *echo.Context) error {
 		return errors.ResponseError(c, errors.ErrValidation)
 	}
 
-	item, errService := h.service.UpdateItem(c.Request().Context(), mapper.FromUpdateItemToEntity(&itemApi))
+	itemEntity := mapper.FromUpdateItemToEntity(&itemApi)
+	itemEntity.UserId = c.Get(helpers.CtxUserId).(uuid.UUID)
+
+	item, errService := h.service.UpdateItem(c.Request().Context(), itemEntity)
 	if errService != nil {
 		return errors.ResponseError(c, errService)
 	}
@@ -128,7 +139,10 @@ func (h *Item) DeleteItem(c *echo.Context) error {
 		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
 
-	errService := h.service.DeleteItem(c.Request().Context(), mapper.FromDeleteItemToEntity(&itemApi))
+	itemEntity := mapper.FromDeleteItemToEntity(&itemApi)
+	itemEntity.UserId = c.Get(helpers.CtxUserId).(uuid.UUID)
+
+	errService := h.service.DeleteItem(c.Request().Context(), itemEntity)
 	if errService != nil {
 		return errors.ResponseError(c, errService)
 	}
