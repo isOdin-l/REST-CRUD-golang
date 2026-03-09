@@ -13,9 +13,9 @@ import (
 
 type ItemRepoInterface interface {
 	CreateItem(ctx context.Context, item *entities.Item) *errors.AppError
-	GetItem(ctx context.Context, itemId uuid.UUID) (*entities.Item, *errors.AppError)
-	UpdateItem(ctx context.Context, itemId uuid.UUID, updateInfo map[string]interface{}) (*entities.Item, *errors.AppError)
-	DeleteItem(ctx context.Context, itemId uuid.UUID) *errors.AppError
+	GetItem(ctx context.Context, item *entities.Item) (*entities.Item, *errors.AppError)
+	UpdateItem(ctx context.Context, item *entities.UpdateItem, updateInfo map[string]interface{}) (*entities.Item, *errors.AppError)
+	DeleteItem(ctx context.Context, item *entities.Item) *errors.AppError
 }
 
 type TodoItemService struct {
@@ -38,11 +38,11 @@ func (s *TodoItemService) CreateItem(ctx context.Context, item *entities.Item) (
 }
 
 func (s *TodoItemService) GetItem(ctx context.Context, item *entities.Item) (*entities.Item, *errors.AppError) {
-	return s.repo.GetItem(ctx, item.ItemId)
+	return s.repo.GetItem(ctx, item)
 }
 
 func (s *TodoItemService) DeleteItem(ctx context.Context, item *entities.Item) *errors.AppError {
-	return s.repo.DeleteItem(ctx, item.ItemId)
+	return s.repo.DeleteItem(ctx, item)
 }
 
 func (s *TodoItemService) UpdateItem(ctx context.Context, item *entities.UpdateItem) (*entities.Item, *errors.AppError) {
@@ -61,8 +61,15 @@ func (s *TodoItemService) UpdateItem(ctx context.Context, item *entities.UpdateI
 	}
 
 	if len(updateInfo) == 0 {
-		return s.repo.GetItem(ctx, item.ItemId)
+		return s.repo.GetItem(ctx, &entities.Item{
+			UserId:      item.UserId,
+			ListId:      item.ListId,
+			ItemId:      item.ItemId,
+			Title:       *item.OptValues.Title,
+			Description: *item.OptValues.Description,
+			Done:        *item.OptValues.Done,
+		})
 	}
 
-	return s.repo.UpdateItem(ctx, item.ItemId, updateInfo)
+	return s.repo.UpdateItem(ctx, item, updateInfo)
 }

@@ -11,10 +11,10 @@ import (
 )
 
 type IItemSql interface {
-	InsertItem(values ...any) (string, []interface{}, error)
-	SelectItem(itemId uuid.UUID) (string, []interface{}, error)
-	UpdateItem(itemId uuid.UUID, updateData map[string]interface{}) (string, []interface{}, error)
-	DeleteItem(itemId uuid.UUID) (string, []interface{}, error)
+	InsertItem(userId uuid.UUID, item *models.Item) (string, []interface{}, error)
+	SelectItem(itemId, userId uuid.UUID) (string, []interface{}, error)
+	UpdateItem(itemId, userId uuid.UUID, updateData map[string]interface{}) (string, []interface{}, error)
+	DeleteItem(itemId, userId uuid.UUID) (string, []interface{}, error)
 }
 
 type ItemRepository struct {
@@ -29,7 +29,7 @@ func NewItemRepository(db IDatabase, sqlBuilder IItemSql) *ItemRepository {
 func (r *ItemRepository) CreateItem(ctx context.Context, item *entities.Item) *errors.AppError {
 	itemDb := models.FromItemEntityToRepo(item)
 
-	query, values, err := r.sqlBuilder.InsertItem(itemDb.Id, itemDb.List_id, itemDb.Title, itemDb.Description)
+	query, values, err := r.sqlBuilder.InsertItem(item.UserId, itemDb)
 	if err != nil {
 		return errors.NewInternalError(err)
 	}
@@ -41,25 +41,27 @@ func (r *ItemRepository) CreateItem(ctx context.Context, item *entities.Item) *e
 	return nil
 }
 
-func (r *ItemRepository) GetItem(ctx context.Context, itemId uuid.UUID) (*entities.Item, *errors.AppError) {
-	query, value, errBuilder := r.sqlBuilder.SelectItem(itemId)
+func (r *ItemRepository) GetItem(ctx context.Context, item *entities.Item) (*entities.Item, *errors.AppError) {
+	itemDb := models.FromItemEntityToRepo(item)
+
+	query, value, errBuilder := r.sqlBuilder.SelectItem(itemDb.Id, item.UserId)
 	if errBuilder != nil {
 		return nil, errors.NewInternalError(errBuilder)
 	}
 
-	item := &models.Item{}
-
-	if errQuery := r.db.QueryRow(ctx, item, query, value...); errQuery != nil {
+	if errQuery := r.db.QueryRow(ctx, itemDb, query, value...); errQuery != nil {
 		if errQuery.Error() == "no rows in result set" {
 			return nil, errors.ErrNotFound
 		}
 		return nil, errors.NewInternalError(errQuery)
 	}
 
-	return item.ToEntity(), nil
+	return itemDb.ToEntity(), nil
 }
-func (r *ItemRepository) DeleteItem(ctx context.Context, itemId uuid.UUID) *errors.AppError {
-	query, value, err := r.sqlBuilder.DeleteItem(itemId)
+func (r *ItemRepository) DeleteItem(ctx context.Context, item *entities.Item) *errors.AppError {
+	itemDb := models.FromItemEntityToRepo(item)
+
+	query, value, err := r.sqlBuilder.DeleteItem(itemDb.Id, item.UserId)
 	if err != nil {
 		return errors.NewInternalError(err)
 	}
@@ -71,20 +73,20 @@ func (r *ItemRepository) DeleteItem(ctx context.Context, itemId uuid.UUID) *erro
 	return nil
 }
 
-func (r *ItemRepository) UpdateItem(ctx context.Context, itemId uuid.UUID, updateInfo map[string]interface{}) (*entities.Item, *errors.AppError) {
-	query, values, err := r.sqlBuilder.UpdateItem(itemId, updateInfo)
+func (r *ItemRepository) UpdateItem(ctx context.Context, item *entities.UpdateItem, updateInfo map[string]interface{}) (*entities.Item, *errors.AppError) {
+	itemDb := models.FromUpdateItemEntityToRepo(item)
+
+	query, values, err := r.sqlBuilder.UpdateItem(itemDb.Id, item.UserId, updateInfo)
 	if err != nil {
 		return nil, errors.NewInternalError(err)
 	}
 
-	item := &models.Item{}
-
-	if errDbQuery := r.db.QueryRow(ctx, item, query, values...); errDbQuery != nil {
+	if errDbQuery := r.db.QueryRow(ctx, itemDb, query, values...); errDbQuery != nil {
 		if errDbQuery.Error() == "no rows in result set" {
 			return nil, errors.ErrNotFound
 		}
 		return nil, errors.NewInternalError(errDbQuery)
 	}
 
-	return item.ToEntity(), nil
+	return itemDb.ToEntity(), nil
 }

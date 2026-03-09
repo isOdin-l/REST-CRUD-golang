@@ -8,6 +8,7 @@ import (
 	mapper "isOdin/RestApi/internal/api"
 	"isOdin/RestApi/internal/entities"
 	"isOdin/RestApi/internal/errors"
+	"isOdin/RestApi/internal/helpers"
 	"isOdin/RestApi/pkg/api"
 
 	"github.com/go-playground/validator/v10"
@@ -52,7 +53,7 @@ func (h *List) CreateList(c *echo.Context) error {
 	}
 
 	listEntity := mapper.FromCreateListToEntity(&listApi)
-	listEntity.UserId = c.Get("userId").(uuid.UUID)
+	listEntity.UserId = c.Get(helpers.CtxUserId).(uuid.UUID)
 
 	list, errService := h.service.CreateList(c.Request().Context(), listEntity)
 	if errService != nil {
@@ -78,7 +79,14 @@ func (h *List) GetList(c *echo.Context) error {
 		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
 
-	list, errService := h.service.GetListById(c.Request().Context(), mapper.FromGetListToEntity(&listApi))
+	if err := h.validate.Struct(listApi); err != nil {
+		return errors.ResponseError(c, errors.ErrValidation)
+	}
+
+	listEntity := mapper.FromGetListToEntity(&listApi)
+	listEntity.UserId = c.Get(helpers.CtxUserId).(uuid.UUID)
+
+	list, errService := h.service.GetListById(c.Request().Context(), listEntity)
 	if errService != nil {
 		return errors.ResponseError(c, errService)
 	}
@@ -108,7 +116,7 @@ func (h *List) UpdateList(c *echo.Context) error {
 	}
 
 	listEntity := mapper.FromUpdateListToEntity(&listApi)
-	listEntity.UserId = c.Get("userId").(uuid.UUID)
+	listEntity.UserId = c.Get(helpers.CtxUserId).(uuid.UUID)
 
 	list, errService := h.service.UpdateList(c.Request().Context(), listEntity)
 	if errService != nil {
@@ -134,7 +142,14 @@ func (h *List) DeleteList(c *echo.Context) error {
 		return errors.ResponseError(c, errors.ErrBadRequest)
 	}
 
-	errService := h.service.DeleteList(c.Request().Context(), mapper.FromDeleteListToEntity(&listApi))
+	if err := h.validate.Struct(listApi); err != nil {
+		return errors.ResponseError(c, errors.ErrValidation)
+	}
+
+	listEntity := mapper.FromDeleteListToEntity(&listApi)
+	listEntity.UserId = c.Get(helpers.CtxUserId).(uuid.UUID)
+
+	errService := h.service.DeleteList(c.Request().Context(), listEntity)
 	if errService != nil {
 		return errors.ResponseError(c, errService)
 	}

@@ -5,6 +5,7 @@ import (
 	mapper "isOdin/RestApi/internal/api"
 	"isOdin/RestApi/internal/entities"
 	"isOdin/RestApi/internal/errors"
+	"isOdin/RestApi/internal/helpers"
 	"isOdin/RestApi/pkg/api"
 	"net/http"
 
@@ -78,7 +79,7 @@ func (h *Auth) SignInHandler(c *echo.Context) error {
 	}
 
 	userEntity := mapper.FromSignInApiToEntity(&userApi)
-	userEntity.UserId = c.Get("userId").(uuid.UUID)
+	userEntity.UserId = c.Get(helpers.CtxUserId).(uuid.UUID)
 
 	generatedToken, errService := h.service.GenerateToken(c.Request().Context(), userEntity)
 	if errService != nil {

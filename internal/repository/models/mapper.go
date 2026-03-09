@@ -59,3 +59,23 @@ func FromListEntityToRepo(req *entities.List) *List {
 		Description: req.Description,
 	}
 }
+
+func FromUpdateListEntityToRepo(req *entities.UpdateList) *List {
+	return &List{
+		Id:          req.ListId,
+		Author_id:   req.UserId,
+		Title:       *req.OptValues.Title,
+		Description: *req.OptValues.Description,
+	}
+}
+
+func FromUpdateItemEntityToRepo(req *entities.UpdateItem) *Item {
+	return &Item{
+		Id:          req.ItemId,
+		List_id:     req.ListId,
+		Title:       *req.OptValues.Title,
+		Description: *req.OptValues.Description,
+		Done:        *req.OptValues.Done,
+	}
+
+}

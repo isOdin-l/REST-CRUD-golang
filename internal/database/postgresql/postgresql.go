@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"isOdin/RestApi/configs"
-	"isOdin/RestApi/internal/database"
+	"isOdin/RestApi/internal/helpers"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -47,7 +47,7 @@ func (ps *PostgresDB) Close() {
 }
 
 func (ps *PostgresDB) getExecutor(ctx context.Context) IPostgresExecutor {
-	tx, ok := ctx.Value(database.TXKEY{}).(pgx.Tx)
+	tx, ok := ctx.Value(helpers.TXKEY{}).(pgx.Tx)
 	if !ok {
 		return ps.conn
 	}
@@ -55,7 +55,7 @@ func (ps *PostgresDB) getExecutor(ctx context.Context) IPostgresExecutor {
 }
 
 func (ps *PostgresDB) WithinTx(ctx context.Context, fn func(ctx context.Context) (*any, error)) (*any, error) {
-	if _, ok := ctx.Value(database.TXKEY{}).(pgx.Tx); ok {
+	if _, ok := ctx.Value(helpers.TXKEY{}).(pgx.Tx); ok {
 		return fn(ctx)
 	}
 
