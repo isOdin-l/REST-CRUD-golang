@@ -17,8 +17,8 @@ type Config struct {
 
 type InternalConfig struct {
 	SALT            string `env:"SALT"`
-	JWT_SIGNING_KEY string `env:"JWT_SIGNING_KEY"`
-	TOKEN_TTL       time.Duration
+	JWT_SIGNING_KEY string 	`env:"JWT_SIGNING_KEY"`
+	TOKEN_TTL		time.Duration `env:"TOKEN_TTL"`
 }
 
 func (c *Config) DSN() string {

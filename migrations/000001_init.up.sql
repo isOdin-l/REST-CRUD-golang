@@ -17,7 +17,7 @@ CREATE TABLE lists
 CREATE TABLE items
 (
     id UUID PRIMARY KEY,
-    list_id REFERENCES lists(id) ON DELETE CASCADE,
+    list_id UUID REFERENCES lists(id) ON DELETE CASCADE,
     title VARCHAR(128) NOT NULL,
     description TEXT,
     done BOOLEAN NOT NULL DEFAULT false

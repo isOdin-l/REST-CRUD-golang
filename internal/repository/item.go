@@ -13,7 +13,7 @@ import (
 type IItemSql interface {
 	InsertItem(userId uuid.UUID, item *models.Item) (string, []interface{}, error)
 	SelectItem(itemId, userId uuid.UUID) (string, []interface{}, error)
-	UpdateItem(itemId, userId uuid.UUID, updateData map[string]interface{}) (string, []interface{}, error)
+	UpdateItem(itemId, userId, listId uuid.UUID, updateData map[string]interface{}) (string, []interface{}, error)
 	DeleteItem(itemId, userId uuid.UUID) (string, []interface{}, error)
 }
 
@@ -49,13 +49,15 @@ func (r *ItemRepository) GetItem(ctx context.Context, item *entities.Item) (*ent
 		return nil, errors.NewInternalError(errBuilder)
 	}
 
-	if errQuery := r.db.QueryRow(ctx, itemDb, query, value...); errQuery != nil {
+	var tmpListId string
+	if errQuery := r.db.QueryRow(ctx, query, value...).Scan(&tmpListId, &itemDb.Title, &itemDb.Description, &itemDb.Done); errQuery != nil {
 		if errQuery.Error() == "no rows in result set" {
 			return nil, errors.ErrNotFound
 		}
 		return nil, errors.NewInternalError(errQuery)
 	}
 
+	itemDb.List_id, _ = uuid.Parse(tmpListId)
 	return itemDb.ToEntity(), nil
 }
 func (r *ItemRepository) DeleteItem(ctx context.Context, item *entities.Item) *errors.AppError {
@@ -75,18 +77,19 @@ func (r *ItemRepository) DeleteItem(ctx context.Context, item *entities.Item) *e
 
 func (r *ItemRepository) UpdateItem(ctx context.Context, item *entities.UpdateItem, updateInfo map[string]interface{}) (*entities.Item, *errors.AppError) {
 	itemDb := models.FromUpdateItemEntityToRepo(item)
+	itemEntity := itemDb.ToEntity()
 
-	query, values, err := r.sqlBuilder.UpdateItem(itemDb.Id, item.UserId, updateInfo)
+	query, values, err := r.sqlBuilder.UpdateItem(itemDb.Id, item.UserId, itemDb.List_id, updateInfo)
 	if err != nil {
 		return nil, errors.NewInternalError(err)
 	}
 
-	if errDbQuery := r.db.QueryRow(ctx, itemDb, query, values...); errDbQuery != nil {
+	if errDbQuery := r.db.QueryRow(ctx, query, values...).Scan(&itemEntity.Title, &itemEntity.Description, &itemEntity.Done); errDbQuery != nil {
 		if errDbQuery.Error() == "no rows in result set" {
 			return nil, errors.ErrNotFound
 		}
 		return nil, errors.NewInternalError(errDbQuery)
 	}
 
-	return itemDb.ToEntity(), nil
+	return itemEntity, nil
 }

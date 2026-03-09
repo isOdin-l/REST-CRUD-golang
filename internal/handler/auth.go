@@ -5,18 +5,17 @@ import (
 	mapper "isOdin/RestApi/internal/api"
 	"isOdin/RestApi/internal/entities"
 	"isOdin/RestApi/internal/errors"
-	"isOdin/RestApi/internal/helpers"
 	"isOdin/RestApi/pkg/api"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
 )
 
 type AuthServiceInterface interface {
-	CreateUser(ctx context.Context, user *entities.User) (uuid.UUID, *errors.AppError)
-	GenerateToken(ctx context.Context, user *entities.User) (string, *errors.AppError)
+	CreateUser(ctx context.Context, user *entities.User) (string, *errors.AppError)
+	LogInUser(ctx context.Context, user *entities.User) (string, *errors.AppError)
 }
 
 type Auth struct {
@@ -47,16 +46,12 @@ func (h *Auth) SignUpHandler(c *echo.Context) error {
 		return errors.ResponseError(c, errors.ErrValidation)
 	}
 
-	userId, errService := h.service.CreateUser(c.Request().Context(), mapper.FromSignUpApiToEntity(userFromApi))
+	token, errService := h.service.CreateUser(c.Request().Context(), mapper.FromSignUpApiToEntity(userFromApi))
 	if errService != nil {
 		return errors.ResponseError(c, errService)
 	}
 
-	userResp := &entities.User{
-		UserId: userId,
-	}
-
-	return c.JSON(http.StatusOK, mapper.FromEntityToSignUpApi(userResp))
+	return c.JSON(http.StatusOK, &api.ResponseJwtToken{Token: token})
 }
 
 // @Summary SignIn
@@ -79,12 +74,12 @@ func (h *Auth) SignInHandler(c *echo.Context) error {
 	}
 
 	userEntity := mapper.FromSignInApiToEntity(&userApi)
-	userEntity.UserId = c.Get(helpers.CtxUserId).(uuid.UUID)
 
-	generatedToken, errService := h.service.GenerateToken(c.Request().Context(), userEntity)
+	token, errService := h.service.LogInUser(c.Request().Context(), userEntity)
 	if errService != nil {
+		c.Logger().Log(c.Request().Context(), slog.LevelError, errService.Error())
 		return errors.ResponseError(c, errService)
 	}
 
-	return c.JSON(http.StatusOK, &api.ResponseSignIn{Token: generatedToken})
+	return c.JSON(http.StatusOK, &api.ResponseJwtToken{Token: token})
 }

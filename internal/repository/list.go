@@ -29,7 +29,7 @@ func NewListRepository(db IDatabase, sqlBuilder IListSql) *ListRepository {
 func (r *ListRepository) CreateList(ctx context.Context, list *entities.List) *errors.AppError {
 	listDb := mapper.FromListEntityToRepo(list)
 
-	query, value, err := r.sqlBuilder.InsertList(listDb.Id, listDb.Author_id, listDb.Title, listDb.Description)
+	query, value, err := r.sqlBuilder.InsertList(listDb.Id.String(), listDb.Author_id.String(), listDb.Title, listDb.Description)
 	if err != nil {
 		return errors.NewInternalError(err)
 	}
@@ -49,13 +49,15 @@ func (r *ListRepository) GetList(ctx context.Context, list *entities.List) (*ent
 		return nil, errors.NewInternalError(err)
 	}
 
-	if err := r.db.QueryRow(ctx, listDb, query, value...); err != nil {
+	var tmpAuthorId string
+	if err := r.db.QueryRow(ctx, query, value...).Scan(&tmpAuthorId, &listDb.Title, &listDb.Description); err != nil {
 		if err.Error() == "no rows in result set" {
 			return nil, errors.ErrNotFound
 		}
 		return nil, errors.NewInternalError(err)
 	}
 
+	listDb.Author_id, _ = uuid.Parse(tmpAuthorId)
 	return listDb.ToEntity(), nil
 }
 
@@ -82,7 +84,7 @@ func (r *ListRepository) UpdateList(ctx context.Context, list *entities.UpdateLi
 		return nil, errors.NewInternalError(err)
 	}
 
-	if err := r.db.QueryRow(ctx, listDb, query, value...); err != nil {
+	if err := r.db.QueryRow(ctx, query, value...).Scan(&listDb.Title, &listDb.Description); err != nil {
 		if err.Error() == "no rows in result set" {
 			return nil, errors.ErrNotFound
 		}

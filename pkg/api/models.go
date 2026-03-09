@@ -31,9 +31,9 @@ type GetItem struct {
 
 type UpdateItem struct {
 	ItemId      uuid.UUID `param:"item_id"`
-	Title       *string   `json:"title" validate:"optional"`
-	Description *string   `json:"description" validate:"optional"`
-	Done        *bool     `json:"done" validate:"optional"`
+	Title       *string   `json:"title"`
+	Description *string   `json:"description"`
+	Done        *bool     `json:"done"`
 }
 
 type DeleteItem struct {
@@ -52,8 +52,8 @@ type GetList struct {
 
 type UpdateList struct {
 	ListId      uuid.UUID `param:"list_id"`
-	Title       *string   `json:"title" validate:"optional"`
-	Description *string   `json:"description" validate:"optional"`
+	Title       *string   `json:"title"`
+	Description *string   `json:"description"`
 }
 
 type DeleteList struct {
@@ -65,13 +65,7 @@ type DeleteList struct {
 // =========================
 
 // Authentication
-type ResponseSignUp struct {
-	User struct {
-		UserId uuid.UUID `json:"id"`
-	} `json:"user"`
-}
-
-type ResponseSignIn struct {
+type ResponseJwtToken struct {
 	Token string `json:"token"`
 }
 

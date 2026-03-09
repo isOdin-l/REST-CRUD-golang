@@ -1,11 +1,12 @@
 package middleware
 
 import (
-	"context"
+	"log/slog"
 	"strings"
 
 	"isOdin/RestApi/configs"
 	"isOdin/RestApi/internal/errors"
+	"isOdin/RestApi/internal/helpers"
 	"isOdin/RestApi/internal/middleware/dto"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -21,28 +22,29 @@ func NewAuthMiddleware(cfg *configs.InternalConfig) *AuthMiddleware {
 	return &AuthMiddleware{cfg: cfg}
 }
 
-type ctxUserId struct{}
-
 func (md *AuthMiddleware) JWTAuth() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c *echo.Context) error {
 			authHeader := c.Request().Header.Get("Authorization")
 			if authHeader == "" {
+				c.Logger().Log(c.Request().Context(), slog.LevelInfo, authHeader)
 				return errors.ResponseError(c, errors.ErrUnauthorized)
 			}
 
 			tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 			if tokenString == authHeader {
+				c.Logger().Log(c.Request().Context(), slog.LevelInfo, authHeader)
 				return errors.ResponseError(c, errors.ErrUnauthorized)
 			}
 
 			userId, err := md.parseJWTtoken(tokenString)
 			if err != nil {
+				c.Logger().Log(c.Request().Context(), slog.LevelInfo, err.Error())
 				return errors.ResponseError(c, errors.ErrUnauthorized)
 			}
 
 			// Созхранение userId в контекст
-			c.SetRequest(c.Request().WithContext(context.WithValue(c.Request().Context(), ctxUserId{}, userId)))
+			c.Set(helpers.CtxUserId, userId)
 
 			return next(c)
 		}
